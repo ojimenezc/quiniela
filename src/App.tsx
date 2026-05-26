@@ -172,6 +172,13 @@ export function App() {
   }, [matches, participant, participants, predictions]);
 
   const groupedMatches = useMemo(() => groupMatchesByStage(matches), [matches]);
+  const officialResultsCount = useMemo(
+    () =>
+      matches.filter(
+        (match) => match.status === "finished" && match.home_score !== null && match.away_score !== null,
+      ).length,
+    [matches],
+  );
   const visibleGroups = useMemo(
     () => groupedMatches.filter((group) => getPhaseTab(group.title) === activePhase),
     [activePhase, groupedMatches],
@@ -191,6 +198,8 @@ export function App() {
       ? "-"
       : isAdmin
         ? "Admin"
+        : officialResultsCount === 0
+          ? "Sin resultados"
         : `#${leaderboard.findIndex((row) => row.participant.id === participant.id) + 1}`;
 
   useEffect(() => {
@@ -238,7 +247,7 @@ export function App() {
           label="Tus puntos"
           value={String(leaderboard.find((row) => row.participant.id === participant.id)?.points ?? 0)}
         />
-        <Metric label="Partidos" value={String(matches.length)} />
+        <Metric label="Resultados oficiales" value={`${officialResultsCount}/${matches.length}`} />
       </section>
 
       <div className="layout">
