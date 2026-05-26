@@ -701,6 +701,7 @@ function ResultRow({
   const [homeScore, setHomeScore] = useState<ScoreInput>(match.home_score ?? "");
   const [awayScore, setAwayScore] = useState<ScoreInput>(match.away_score ?? "");
   const isFinished = match.status === "finished";
+  const canEditTeams = !GROUP_STAGE_NAMES.has(match.stage);
   const canSave = homeScore !== "" && awayScore !== "";
   const canSaveTeams = homeTeam.trim() !== "" && awayTeam.trim() !== "";
 
@@ -727,28 +728,30 @@ function ResultRow({
           {match.venue ? ` · ${match.venue}` : ""}
         </small>
       </div>
-      <div className="team-editor">
-        <input
-          value={homeTeam}
-          onChange={(event) => setHomeTeam(event.target.value)}
-          aria-label="Equipo local"
-        />
-        <span>vs</span>
-        <input
-          value={awayTeam}
-          onChange={(event) => setAwayTeam(event.target.value)}
-          aria-label="Equipo visitante"
-        />
-        <button
-          className="icon-button"
-          disabled={!canSaveTeams}
-          onClick={() => onSaveTeams(match.id, homeTeam, awayTeam)}
-          aria-label="Guardar equipos"
-          title="Guardar equipos"
-        >
-          <Save size={18} />
-        </button>
-      </div>
+      {canEditTeams && (
+        <div className="team-editor">
+          <input
+            value={homeTeam}
+            onChange={(event) => setHomeTeam(event.target.value)}
+            aria-label="Equipo local"
+          />
+          <span>vs</span>
+          <input
+            value={awayTeam}
+            onChange={(event) => setAwayTeam(event.target.value)}
+            aria-label="Equipo visitante"
+          />
+          <button
+            className="icon-button"
+            disabled={!canSaveTeams}
+            onClick={() => onSaveTeams(match.id, homeTeam, awayTeam)}
+            aria-label="Guardar equipos"
+            title="Guardar equipos"
+          >
+            <Save size={18} />
+          </button>
+        </div>
+      )}
       <div className="result-status">
         <span>{isFinished ? "Finalizado" : "Pendiente"}</span>
         {isFinished && (
