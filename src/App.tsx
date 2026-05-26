@@ -758,15 +758,6 @@ function PredictionRow({
           onBlur={saveNow}
           aria-label={`Goles de ${match.away_team}`}
         />
-        <button
-          className="icon-button"
-          disabled={locked || !canSave}
-          onClick={saveNow}
-          aria-label="Guardar pronóstico"
-          title="Guardar pronóstico"
-        >
-          <Save size={18} />
-        </button>
       </div>
       {match.status === "finished" && (
         <div className="points-breakdown">
