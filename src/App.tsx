@@ -1,5 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Trophy, Save, ShieldCheck, LogOut, BarChart3, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import {
+  Trophy,
+  Save,
+  ShieldCheck,
+  LogOut,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  CheckCircle2,
+} from "lucide-react";
 import { supabase } from "./supabase";
 import { scorePrediction } from "./scoring";
 import type { LeaderboardRow, Match, Participant, Prediction } from "./types";
@@ -130,10 +140,17 @@ export function App() {
   async function saveResult(matchId: string, homeScore: number, awayScore: number) {
     const { error } = await supabase
       .from("matches")
-      .update({ home_score: homeScore, away_score: awayScore, status: "finished" })
+      .update({ home_score: homeScore, away_score: awayScore })
       .eq("id", matchId);
 
-    setMessage(error ? "No se pudo guardar el resultado." : "Resultado actualizado.");
+    setMessage(error ? "No se pudo guardar el marcador." : "Marcador actualizado.");
+    await loadData();
+  }
+
+  async function finishMatch(matchId: string) {
+    const { error } = await supabase.from("matches").update({ status: "finished" }).eq("id", matchId);
+
+    setMessage(error ? "No se pudo cerrar el partido." : "Partido marcado como finalizado.");
     await loadData();
   }
 
@@ -330,7 +347,13 @@ export function App() {
               {selectedAdminGroup && (
                 <MatchGroup title={selectedAdminGroup.title} matches={selectedAdminGroup.matches}>
                   {selectedAdminGroup.matches.map((match) => (
-                    <ResultRow key={match.id} match={match} onSave={saveResult} onClear={clearResult} />
+                    <ResultRow
+                      key={match.id}
+                      match={match}
+                      onSave={saveResult}
+                      onFinish={finishMatch}
+                      onClear={clearResult}
+                    />
                   ))}
                 </MatchGroup>
               )}
@@ -604,10 +627,12 @@ function PredictionRow({
 function ResultRow({
   match,
   onSave,
+  onFinish,
   onClear,
 }: {
   match: Match;
   onSave: (matchId: string, homeScore: number, awayScore: number) => void;
+  onFinish: (matchId: string) => void;
   onClear: (matchId: string) => void;
 }) {
   const [homeScore, setHomeScore] = useState<ScoreInput>(match.home_score ?? "");
@@ -670,12 +695,25 @@ function ResultRow({
         >
           <Save size={18} />
         </button>
-        {isFinished && (
+        {!isFinished && (
+          <button
+            className="icon-button finish"
+            disabled={!canSave}
+            onClick={() => {
+              if (homeScore !== "" && awayScore !== "") onFinish(match.id);
+            }}
+            aria-label="Marcar partido como finalizado"
+            title="Marcar partido como finalizado"
+          >
+            <CheckCircle2 size={18} />
+          </button>
+        )}
+        {(isFinished || match.home_score !== null || match.away_score !== null) && (
           <button
             className="icon-button danger"
             onClick={() => onClear(match.id)}
-            aria-label="Quitar resultado real"
-            title="Quitar resultado real"
+            aria-label="Quitar marcador y reabrir"
+            title="Quitar marcador y reabrir"
           >
             <RotateCcw size={18} />
           </button>

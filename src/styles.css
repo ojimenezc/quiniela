@@ -509,6 +509,11 @@ input {
   color: #173226;
 }
 
+.icon-button.finish {
+  background: linear-gradient(135deg, #1687ff, #075ca8);
+  box-shadow: 0 8px 18px rgba(7, 92, 168, 0.24);
+}
+
 .icon-button.danger {
   background: linear-gradient(135deg, #e23c2f, #b8241b);
   box-shadow: 0 8px 18px rgba(226, 60, 47, 0.24);
@@ -762,7 +767,7 @@ form button {
   }
 
   .result-editor {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 46px 46px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 46px 46px 46px;
   }
 
   .score-editor input {
@@ -868,7 +873,7 @@ form button {
   }
 
   .result-editor {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px 44px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px 44px 44px;
   }
 
   .leaderboard-row {
