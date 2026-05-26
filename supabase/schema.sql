@@ -18,6 +18,8 @@ create table if not exists matches (
   home_score integer,
   away_score integer,
   status text not null default 'scheduled' check (status in ('scheduled', 'finished')),
+  check (home_score is null or (home_score >= 0 and home_score <= 15)),
+  check (away_score is null or (away_score >= 0 and away_score <= 15)),
   created_at timestamptz not null default now()
 );
 
@@ -25,8 +27,8 @@ create table if not exists predictions (
   id uuid primary key default gen_random_uuid(),
   participant_id uuid not null references participants(id) on delete cascade,
   match_id uuid not null references matches(id) on delete cascade,
-  home_score integer not null check (home_score >= 0),
-  away_score integer not null check (away_score >= 0),
+  home_score integer not null check (home_score >= 0 and home_score <= 15),
+  away_score integer not null check (away_score >= 0 and away_score <= 15),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (participant_id, match_id)

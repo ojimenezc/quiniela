@@ -16,6 +16,7 @@ import type { LeaderboardRow, Match, Participant, Prediction } from "./types";
 import type { ReactNode } from "react";
 
 const SESSION_KEY = "quiniela.participant";
+const MAX_SCORE = 15;
 const GROUP_STAGE_NAMES = new Set(Array.from({ length: 17 }, (_, index) => `Jornada ${index + 1}`));
 const PHASE_TABS = [
   { id: "groups", label: "Fase de grupos" },
@@ -31,6 +32,15 @@ type ScoreInput = number | "";
 
 function isAdminParticipant(participant: Participant | null | undefined) {
   return Boolean(participant?.is_admin || participant?.name.trim().toLowerCase() === "admin");
+}
+
+function clampScore(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(Math.max(value, 0), MAX_SCORE);
+}
+
+function readScoreInput(value: string): ScoreInput {
+  return value === "" ? "" : clampScore(Number(value));
 }
 
 export function App() {
@@ -126,8 +136,8 @@ export function App() {
       {
         participant_id: participant.id,
         match_id: matchId,
-        home_score: homeScore,
-        away_score: awayScore,
+        home_score: clampScore(homeScore),
+        away_score: clampScore(awayScore),
         updated_at: new Date().toISOString(),
       },
       { onConflict: "participant_id,match_id" },
@@ -140,7 +150,7 @@ export function App() {
   async function saveResult(matchId: string, homeScore: number, awayScore: number) {
     const { error } = await supabase
       .from("matches")
-      .update({ home_score: homeScore, away_score: awayScore })
+      .update({ home_score: clampScore(homeScore), away_score: clampScore(awayScore) })
       .eq("id", matchId);
 
     setMessage(error ? "No se pudo guardar el marcador." : "Marcador actualizado.");
@@ -595,18 +605,20 @@ function PredictionRow({
         <input
           type="number"
           min="0"
+          max={MAX_SCORE}
           value={homeScore}
           disabled={locked}
-          onChange={(event) => setHomeScore(Number(event.target.value))}
+          onChange={(event) => setHomeScore(clampScore(Number(event.target.value)))}
           aria-label={`Goles de ${match.home_team}`}
         />
         <span>-</span>
         <input
           type="number"
           min="0"
+          max={MAX_SCORE}
           value={awayScore}
           disabled={locked}
-          onChange={(event) => setAwayScore(Number(event.target.value))}
+          onChange={(event) => setAwayScore(clampScore(Number(event.target.value)))}
           aria-label={`Goles de ${match.away_team}`}
         />
         <button
@@ -670,18 +682,20 @@ function ResultRow({
         <input
           type="number"
           min="0"
+          max={MAX_SCORE}
           value={homeScore}
           placeholder="Local"
-          onChange={(event) => setHomeScore(event.target.value === "" ? "" : Number(event.target.value))}
+          onChange={(event) => setHomeScore(readScoreInput(event.target.value))}
           aria-label={`Resultado real de ${match.home_team}`}
         />
         <span>-</span>
         <input
           type="number"
           min="0"
+          max={MAX_SCORE}
           value={awayScore}
           placeholder="Visita"
-          onChange={(event) => setAwayScore(event.target.value === "" ? "" : Number(event.target.value))}
+          onChange={(event) => setAwayScore(readScoreInput(event.target.value))}
           aria-label={`Resultado real de ${match.away_team}`}
         />
         <button
