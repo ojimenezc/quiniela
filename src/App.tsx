@@ -582,10 +582,11 @@ function PredictionRow({
   prediction?: Prediction;
   onSave: (matchId: string, homeScore: number, awayScore: number) => void;
 }) {
-  const [homeScore, setHomeScore] = useState(prediction?.home_score ?? 0);
-  const [awayScore, setAwayScore] = useState(prediction?.away_score ?? 0);
+  const [homeScore, setHomeScore] = useState<ScoreInput>(prediction?.home_score ?? "");
+  const [awayScore, setAwayScore] = useState<ScoreInput>(prediction?.away_score ?? "");
   const locked = match.status === "finished";
   const score = scorePrediction(match, prediction);
+  const canSave = homeScore !== "" && awayScore !== "";
   const scoreDetails =
     match.status === "finished" && prediction
       ? [
@@ -627,7 +628,8 @@ function PredictionRow({
           max={MAX_SCORE}
           value={homeScore}
           disabled={locked}
-          onChange={(event) => setHomeScore(clampScore(Number(event.target.value)))}
+          placeholder="Local"
+          onChange={(event) => setHomeScore(readScoreInput(event.target.value))}
           aria-label={`Goles de ${match.home_team}`}
         />
         <span>-</span>
@@ -637,13 +639,16 @@ function PredictionRow({
           max={MAX_SCORE}
           value={awayScore}
           disabled={locked}
-          onChange={(event) => setAwayScore(clampScore(Number(event.target.value)))}
+          placeholder="Visita"
+          onChange={(event) => setAwayScore(readScoreInput(event.target.value))}
           aria-label={`Goles de ${match.away_team}`}
         />
         <button
           className="icon-button"
-          disabled={locked}
-          onClick={() => onSave(match.id, homeScore, awayScore)}
+          disabled={locked || !canSave}
+          onClick={() => {
+            if (homeScore !== "" && awayScore !== "") onSave(match.id, homeScore, awayScore);
+          }}
           aria-label="Guardar pronóstico"
           title="Guardar pronóstico"
         >
