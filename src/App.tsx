@@ -499,7 +499,7 @@ function LoginScreen({
           </label>
           <label>
             PIN
-            <input value={pin} onChange={(event) => setPin(event.target.value)} placeholder="4 dígitos" />
+            <input value={pin} onChange={(event) => setPin(event.target.value)} placeholder="Cualquier PIN que recuerdes" />
           </label>
           <button type="submit" disabled={loading}>
             Entrar
