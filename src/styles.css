@@ -11,8 +11,14 @@
   box-sizing: border-box;
 }
 
+html {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
+  overflow-x: hidden;
 }
 
 button,
@@ -33,8 +39,9 @@ input:disabled {
 .app-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
-  padding: 28px;
+  overflow-x: hidden;
+  padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 32px
+    max(18px, env(safe-area-inset-left));
   background:
     linear-gradient(135deg, rgba(5, 48, 35, 0.93), rgba(0, 122, 77, 0.72)),
     url("https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1800&q=80");
@@ -119,7 +126,7 @@ input:disabled {
 .notice {
   position: relative;
   z-index: 1;
-  width: min(1180px, 100%);
+  width: min(1280px, 100%);
   margin-right: auto;
   margin-left: auto;
 }
@@ -128,7 +135,12 @@ input:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 22px;
+}
+
+.topbar > div {
+  min-width: 0;
 }
 
 h1,
@@ -143,6 +155,7 @@ h1 {
   font-size: clamp(2rem, 5vw, 4rem);
   line-height: 1;
   text-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  overflow-wrap: anywhere;
 }
 
 h2 {
@@ -213,13 +226,19 @@ h3 {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 380px);
   gap: 18px;
   align-items: start;
 }
 
 .panel {
+  min-width: 0;
   padding: 18px;
+}
+
+.layout > .panel:last-child {
+  position: sticky;
+  top: 18px;
 }
 
 .admin-panel {
@@ -243,6 +262,10 @@ h3 {
 
 .phase-tabs {
   overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
 }
 
 .phase-tabs button {
@@ -257,6 +280,7 @@ h3 {
   color: #1f4b39;
   font-weight: 800;
   white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 .phase-tabs button.active {
@@ -267,8 +291,9 @@ h3 {
 }
 
 .group-carousel {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
   align-items: center;
-  justify-content: space-between;
   padding: 10px;
   border: 1px solid #cfe7dc;
   border-radius: 8px;
@@ -280,7 +305,14 @@ h3 {
 .carousel-current {
   display: grid;
   gap: 2px;
+  min-width: 0;
   text-align: center;
+}
+
+.carousel-current strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .carousel-current span {
@@ -332,7 +364,7 @@ h3 {
 
 .match-row {
   display: grid;
-  grid-template-columns: minmax(190px, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 14px;
   align-items: center;
   padding: 12px;
@@ -362,12 +394,22 @@ h3 {
 .match-info {
   display: grid;
   gap: 3px;
+  min-width: 0;
+}
+
+.match-info strong {
+  overflow-wrap: anywhere;
+}
+
+.match-info small {
+  line-height: 1.35;
 }
 
 .score-editor {
   display: flex;
   align-items: center;
   gap: 7px;
+  min-width: max-content;
 }
 
 input {
@@ -388,6 +430,7 @@ input {
   display: inline-grid;
   width: 42px;
   height: 42px;
+  min-width: 42px;
   place-items: center;
   border: 0;
   border-radius: 8px;
@@ -425,6 +468,8 @@ input {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .leaderboard-row b {
@@ -500,9 +545,53 @@ form button {
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1120px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .layout > .panel:last-child {
+    position: static;
+  }
+}
+
+@media (max-width: 920px) {
   .app-shell {
-    padding: 18px;
+    padding: max(18px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 24px
+      max(12px, env(safe-area-inset-left));
+    background-attachment: scroll;
+  }
+
+  .app-shell::before {
+    background-size: 58px 58px;
+  }
+
+  .field-glow {
+    top: 10%;
+    right: -180px;
+    width: 300px;
+    height: 300px;
+  }
+
+  .ball-run {
+    bottom: 12px;
+    left: 12px;
+    width: 22px;
+    height: 22px;
+    opacity: 0.8;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(1.9rem, 10vw, 3rem);
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
   }
 
   .summary-grid,
@@ -510,11 +599,185 @@ form button {
     grid-template-columns: 1fr;
   }
 
+  .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .metric,
+  .panel {
+    box-shadow: 0 12px 30px rgba(8, 31, 22, 0.2);
+  }
+
+  .metric {
+    min-height: 104px;
+    padding: 12px 10px;
+  }
+
+  .metric span {
+    font-size: 0.74rem;
+    line-height: 1.2;
+  }
+
+  .metric strong {
+    font-size: clamp(1.7rem, 9vw, 2.15rem);
+    line-height: 1;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .section-heading {
+    margin-bottom: 12px;
+  }
+
+  .phase-tabs {
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+    margin-left: 0;
+    padding: 0 0 4px;
+  }
+
+  .phase-tabs button {
+    padding: 9px 10px;
+    font-size: 0.86rem;
+  }
+
+  .group-carousel {
+    grid-template-columns: 46px minmax(0, 1fr) 46px;
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .carousel-current {
+    width: 100%;
+  }
+
+  .carousel-current strong {
+    font-size: 0.98rem;
+  }
+
+  .match-group-header {
+    align-items: flex-start;
+    padding: 10px;
+  }
+
   .match-row {
     grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .score-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 46px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .score-editor input {
+    width: 100%;
+    min-height: 46px;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .icon-button {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
   }
 
   .points {
     justify-self: start;
+  }
+
+  .leaderboard-row {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .leaderboard-row b {
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 920px) {
+  .app-shell {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .metric {
+    min-height: 128px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar .icon-button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .metric::after {
+    right: -58px;
+    bottom: -64px;
+    width: 104px;
+    height: 104px;
+  }
+
+  .login-page {
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .login-panel {
+    align-self: center;
+    padding: 20px;
+  }
+
+  .login-panel h1 {
+    font-size: 1.9rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .app-shell {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .panel,
+  .metric {
+    border-radius: 7px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-grid .metric:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .score-editor {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
+  }
+
+  .leaderboard-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .leaderboard-row b,
+  .leaderboard-row small {
+    grid-column: 2;
   }
 }

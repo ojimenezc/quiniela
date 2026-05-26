@@ -18,8 +18,8 @@ const PHASE_TABS = [
 
 type PhaseTab = (typeof PHASE_TABS)[number]["id"];
 
-function isAdminParticipant(participant: Participant) {
-  return participant.is_admin || participant.name.trim().toLowerCase() === "admin";
+function isAdminParticipant(participant: Participant | null | undefined) {
+  return Boolean(participant?.is_admin || participant?.name.trim().toLowerCase() === "admin");
 }
 
 export function App() {
@@ -34,7 +34,14 @@ export function App() {
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY);
-    if (raw) setParticipant(JSON.parse(raw));
+    if (raw) {
+      try {
+        const savedParticipant = JSON.parse(raw) as Participant | null;
+        if (savedParticipant?.id) setParticipant(savedParticipant);
+      } catch {
+        localStorage.removeItem(SESSION_KEY);
+      }
+    }
     void loadData();
   }, []);
 
@@ -169,9 +176,12 @@ export function App() {
   );
   const selectedGroupTitle = activeGroupTitle || visibleGroups[0]?.title || "";
   const selectedGroup = visibleGroups.find((group) => group.title === selectedGroupTitle) ?? visibleGroups[0];
-  const currentParticipantRank = isAdminParticipant(participant)
-    ? "Admin"
-    : `#${leaderboard.findIndex((row) => row.participant.id === participant.id) + 1}`;
+  const currentParticipantRank =
+    !participant
+      ? "-"
+      : isAdminParticipant(participant)
+        ? "Admin"
+        : `#${leaderboard.findIndex((row) => row.participant.id === participant.id) + 1}`;
 
   useEffect(() => {
     const firstVisibleGroup = visibleGroups[0]?.title ?? "";
