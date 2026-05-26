@@ -602,6 +602,9 @@ function PredictionRow({
 }) {
   const [homeScore, setHomeScore] = useState<ScoreInput>(prediction?.home_score ?? "");
   const [awayScore, setAwayScore] = useState<ScoreInput>(prediction?.away_score ?? "");
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  const savedHomeScore = prediction?.home_score;
+  const savedAwayScore = prediction?.away_score;
   const locked = match.status === "finished";
   const score = scorePrediction(match, prediction);
   const canSave = homeScore !== "" && awayScore !== "";
@@ -616,6 +619,41 @@ function PredictionRow({
           score.points === 0 ? "Sin aciertos" : null,
         ].filter(Boolean)
       : [];
+
+  useEffect(() => {
+    if (!hasUserEdited) {
+      setHomeScore(prediction?.home_score ?? "");
+      setAwayScore(prediction?.away_score ?? "");
+    }
+  }, [hasUserEdited, prediction?.away_score, prediction?.home_score]);
+
+  useEffect(() => {
+    if (!hasUserEdited || locked || !canSave) return;
+    if (homeScore === savedHomeScore && awayScore === savedAwayScore) return;
+
+    const timeoutId = window.setTimeout(() => {
+      onSave(match.id, homeScore, awayScore);
+      setHasUserEdited(false);
+    }, 800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    awayScore,
+    canSave,
+    hasUserEdited,
+    homeScore,
+    locked,
+    match.id,
+    onSave,
+    savedAwayScore,
+    savedHomeScore,
+  ]);
+
+  function saveNow() {
+    if (homeScore === "" || awayScore === "") return;
+    onSave(match.id, homeScore, awayScore);
+    setHasUserEdited(false);
+  }
 
   return (
     <article className={locked ? "match-row locked" : "match-row"}>
@@ -647,7 +685,10 @@ function PredictionRow({
           value={homeScore}
           disabled={locked}
           placeholder="Local"
-          onChange={(event) => setHomeScore(readScoreInput(event.target.value))}
+          onChange={(event) => {
+            setHasUserEdited(true);
+            setHomeScore(readScoreInput(event.target.value));
+          }}
           aria-label={`Goles de ${match.home_team}`}
         />
         <span>-</span>
@@ -658,15 +699,16 @@ function PredictionRow({
           value={awayScore}
           disabled={locked}
           placeholder="Visita"
-          onChange={(event) => setAwayScore(readScoreInput(event.target.value))}
+          onChange={(event) => {
+            setHasUserEdited(true);
+            setAwayScore(readScoreInput(event.target.value));
+          }}
           aria-label={`Goles de ${match.away_team}`}
         />
         <button
           className="icon-button"
           disabled={locked || !canSave}
-          onClick={() => {
-            if (homeScore !== "" && awayScore !== "") onSave(match.id, homeScore, awayScore);
-          }}
+          onClick={saveNow}
           aria-label="Guardar pronóstico"
           title="Guardar pronóstico"
         >
