@@ -68,6 +68,16 @@ export function App() {
     void loadData();
   }, []);
 
+  useEffect(() => {
+    if (!message || !participant) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setMessage("");
+    }, 2600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [message, participant]);
+
   async function loadData() {
     setLoading(true);
     const [participantsResult, matchesResult, predictionsResult] = await Promise.all([
@@ -294,7 +304,11 @@ export function App() {
         </button>
       </header>
 
-      {message && <div className="notice">{message}</div>}
+      {message && (
+        <div className="toast" role="status" aria-live="polite">
+          {message}
+        </div>
+      )}
 
       <section className="summary-grid">
         <Metric label="Tu posición" value={currentParticipantRank} />
