@@ -678,6 +678,10 @@ function PredictionRow({
 
   function saveNow() {
     if (homeScore === "" || awayScore === "") return;
+    if (homeScore === savedHomeScore && awayScore === savedAwayScore) {
+      setHasUserEdited(false);
+      return;
+    }
     onSave(match.id, homeScore, awayScore);
     setHasUserEdited(false);
   }
@@ -716,6 +720,7 @@ function PredictionRow({
             setHasUserEdited(true);
             setHomeScore(readScoreInput(event.target.value));
           }}
+          onBlur={saveNow}
           aria-label={`Goles de ${match.home_team}`}
         />
         <span>-</span>
@@ -730,6 +735,7 @@ function PredictionRow({
             setHasUserEdited(true);
             setAwayScore(readScoreInput(event.target.value));
           }}
+          onBlur={saveNow}
           aria-label={`Goles de ${match.away_team}`}
         />
         <button
