@@ -142,19 +142,32 @@ export function App() {
       return;
     }
 
-    const { error } = await supabase.from("predictions").upsert(
+    const nextHomeScore = clampScore(homeScore);
+    const nextAwayScore = clampScore(awayScore);
+    const { data, error } = await supabase.from("predictions").upsert(
       {
         participant_id: participant.id,
         match_id: matchId,
-        home_score: clampScore(homeScore),
-        away_score: clampScore(awayScore),
+        home_score: nextHomeScore,
+        away_score: nextAwayScore,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "participant_id,match_id" },
-    );
+    ).select().single();
 
-    setMessage(error ? "No se pudo guardar el pronóstico." : "Pronóstico guardado.");
-    await loadData();
+    if (error || !data) {
+      setMessage("No se pudo guardar el pronóstico.");
+      return;
+    }
+
+    setPredictions((currentPredictions) => {
+      const exists = currentPredictions.some((item) => item.id === data.id);
+      if (exists) {
+        return currentPredictions.map((item) => (item.id === data.id ? data : item));
+      }
+      return [...currentPredictions, data];
+    });
+    setMessage("Pronóstico guardado.");
   }
 
   async function saveResult(matchId: string, homeScore: number, awayScore: number) {
