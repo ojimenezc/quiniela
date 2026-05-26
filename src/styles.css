@@ -252,6 +252,28 @@ h3 {
   margin-bottom: 14px;
 }
 
+.admin-heading {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-heading > span {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fff8df;
+  color: #6b5115;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 .phase-tabs,
 .group-carousel {
   display: flex;
@@ -391,6 +413,13 @@ h3 {
   color: #61736a;
 }
 
+.result-row.finished {
+  border-color: rgba(0, 168, 107, 0.38);
+  background:
+    linear-gradient(90deg, rgba(0, 168, 107, 0.08), rgba(255, 255, 255, 0)),
+    #ffffff;
+}
+
 .match-info {
   display: grid;
   gap: 3px;
@@ -410,6 +439,32 @@ h3 {
   align-items: center;
   gap: 7px;
   min-width: max-content;
+}
+
+.result-status {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  min-width: 92px;
+}
+
+.result-status span {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #eef6f0;
+  color: #61736a;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.result-row.finished .result-status span {
+  background: #007a4d;
+  color: #ffffff;
+}
+
+.result-status strong {
+  color: #e23c2f;
+  font-size: 1rem;
 }
 
 input {
@@ -633,6 +688,14 @@ form button {
     margin-bottom: 12px;
   }
 
+  .admin-heading {
+    align-items: flex-start;
+  }
+
+  .admin-heading > span {
+    white-space: nowrap;
+  }
+
   .phase-tabs {
     width: 100%;
     max-width: 100%;
@@ -669,6 +732,11 @@ form button {
     grid-template-columns: 1fr;
     gap: 10px;
     padding: 12px;
+  }
+
+  .result-status {
+    justify-items: start;
+    min-width: 0;
   }
 
   .score-editor {
@@ -758,6 +826,14 @@ form button {
   .panel,
   .metric {
     border-radius: 7px;
+  }
+
+  .admin-heading {
+    display: grid;
+  }
+
+  .admin-heading > span {
+    justify-self: start;
   }
 
   .summary-grid {

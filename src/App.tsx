@@ -31,6 +31,8 @@ export function App() {
   const [message, setMessage] = useState("");
   const [activePhase, setActivePhase] = useState<PhaseTab>("groups");
   const [activeGroupTitle, setActiveGroupTitle] = useState<string>("");
+  const [activeAdminPhase, setActiveAdminPhase] = useState<PhaseTab>("groups");
+  const [activeAdminGroupTitle, setActiveAdminGroupTitle] = useState<string>("");
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -176,10 +178,18 @@ export function App() {
   );
   const selectedGroupTitle = activeGroupTitle || visibleGroups[0]?.title || "";
   const selectedGroup = visibleGroups.find((group) => group.title === selectedGroupTitle) ?? visibleGroups[0];
+  const isAdmin = isAdminParticipant(participant);
+  const adminVisibleGroups = useMemo(
+    () => groupedMatches.filter((group) => getPhaseTab(group.title) === activeAdminPhase),
+    [activeAdminPhase, groupedMatches],
+  );
+  const selectedAdminGroupTitle = activeAdminGroupTitle || adminVisibleGroups[0]?.title || "";
+  const selectedAdminGroup =
+    adminVisibleGroups.find((group) => group.title === selectedAdminGroupTitle) ?? adminVisibleGroups[0];
   const currentParticipantRank =
     !participant
       ? "-"
-      : isAdminParticipant(participant)
+      : isAdmin
         ? "Admin"
         : `#${leaderboard.findIndex((row) => row.participant.id === participant.id) + 1}`;
 
@@ -189,6 +199,13 @@ export function App() {
       setActiveGroupTitle(firstVisibleGroup);
     }
   }, [activeGroupTitle, visibleGroups]);
+
+  useEffect(() => {
+    const firstVisibleGroup = adminVisibleGroups[0]?.title ?? "";
+    if (firstVisibleGroup && !adminVisibleGroups.some((group) => group.title === activeAdminGroupTitle)) {
+      setActiveAdminGroupTitle(firstVisibleGroup);
+    }
+  }, [activeAdminGroupTitle, adminVisibleGroups]);
 
   function logout() {
     localStorage.removeItem(SESSION_KEY);
@@ -235,7 +252,7 @@ export function App() {
           ) : (
             <>
               <PhaseTabs activePhase={activePhase} onChange={setActivePhase} groups={groupedMatches} />
-              {activePhase === "groups" && visibleGroups.length > 1 && (
+              {visibleGroups.length > 1 && (
                 <GroupCarousel
                   groups={visibleGroups}
                   activeTitle={selectedGroupTitle}
@@ -269,21 +286,36 @@ export function App() {
         </section>
       </div>
 
-      {participant.is_admin && (
+      {isAdmin && (
         <section className="panel admin-panel">
-          <div className="section-heading">
-            <ShieldCheck size={20} />
-            <h2>Admin resultados</h2>
+          <div className="section-heading admin-heading">
+            <div>
+              <ShieldCheck size={20} />
+              <h2>Resultados reales</h2>
+            </div>
+            <span>Visible solo para admin</span>
           </div>
-          <div className="match-groups">
-            {groupedMatches.map((group) => (
-              <MatchGroup key={group.title} title={group.title} matches={group.matches}>
-                {group.matches.map((match) => (
-                  <ResultRow key={match.id} match={match} onSave={saveResult} />
-                ))}
-              </MatchGroup>
-            ))}
-          </div>
+          {loading ? (
+            <p>Cargando...</p>
+          ) : (
+            <>
+              <PhaseTabs activePhase={activeAdminPhase} onChange={setActiveAdminPhase} groups={groupedMatches} />
+              {adminVisibleGroups.length > 1 && (
+                <GroupCarousel
+                  groups={adminVisibleGroups}
+                  activeTitle={selectedAdminGroupTitle}
+                  onChange={setActiveAdminGroupTitle}
+                />
+              )}
+              {selectedAdminGroup && (
+                <MatchGroup title={selectedAdminGroup.title} matches={selectedAdminGroup.matches}>
+                  {selectedAdminGroup.matches.map((match) => (
+                    <ResultRow key={match.id} match={match} onSave={saveResult} />
+                  ))}
+                </MatchGroup>
+              )}
+            </>
+          )}
         </section>
       )}
     </main>
@@ -552,9 +584,15 @@ function PredictionRow({
 function ResultRow({ match, onSave }: { match: Match; onSave: (matchId: string, homeScore: number, awayScore: number) => void }) {
   const [homeScore, setHomeScore] = useState(match.home_score ?? 0);
   const [awayScore, setAwayScore] = useState(match.away_score ?? 0);
+  const isFinished = match.status === "finished";
+
+  useEffect(() => {
+    setHomeScore(match.home_score ?? 0);
+    setAwayScore(match.away_score ?? 0);
+  }, [match.away_score, match.home_score]);
 
   return (
-    <article className="match-row">
+    <article className={isFinished ? "match-row result-row finished" : "match-row result-row"}>
       <div className="match-info">
         <span>
           {match.match_number ? `Partido ${match.match_number} · ` : ""}
@@ -566,11 +604,36 @@ function ResultRow({ match, onSave }: { match: Match; onSave: (matchId: string, 
           {match.venue ? ` · ${match.venue}` : ""}
         </small>
       </div>
+      <div className="result-status">
+        <span>{isFinished ? "Finalizado" : "Pendiente"}</span>
+        {isFinished && (
+          <strong>
+            {match.home_score} - {match.away_score}
+          </strong>
+        )}
+      </div>
       <div className="score-editor">
-        <input type="number" min="0" value={homeScore} onChange={(event) => setHomeScore(Number(event.target.value))} />
+        <input
+          type="number"
+          min="0"
+          value={homeScore}
+          onChange={(event) => setHomeScore(Number(event.target.value))}
+          aria-label={`Resultado real de ${match.home_team}`}
+        />
         <span>-</span>
-        <input type="number" min="0" value={awayScore} onChange={(event) => setAwayScore(Number(event.target.value))} />
-        <button className="icon-button" onClick={() => onSave(match.id, homeScore, awayScore)} aria-label="Guardar resultado" title="Guardar resultado">
+        <input
+          type="number"
+          min="0"
+          value={awayScore}
+          onChange={(event) => setAwayScore(Number(event.target.value))}
+          aria-label={`Resultado real de ${match.away_team}`}
+        />
+        <button
+          className="icon-button"
+          onClick={() => onSave(match.id, homeScore, awayScore)}
+          aria-label="Guardar resultado real"
+          title="Guardar resultado real"
+        >
           <Save size={18} />
         </button>
       </div>
