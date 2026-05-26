@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Trophy, Save, ShieldCheck, LogOut, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trophy, Save, ShieldCheck, LogOut, BarChart3, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { supabase } from "./supabase";
 import { scorePrediction } from "./scoring";
 import type { LeaderboardRow, Match, Participant, Prediction } from "./types";
@@ -17,6 +17,7 @@ const PHASE_TABS = [
 ] as const;
 
 type PhaseTab = (typeof PHASE_TABS)[number]["id"];
+type ScoreInput = number | "";
 
 function isAdminParticipant(participant: Participant | null | undefined) {
   return Boolean(participant?.is_admin || participant?.name.trim().toLowerCase() === "admin");
@@ -133,6 +134,16 @@ export function App() {
       .eq("id", matchId);
 
     setMessage(error ? "No se pudo guardar el resultado." : "Resultado actualizado.");
+    await loadData();
+  }
+
+  async function clearResult(matchId: string) {
+    const { error } = await supabase
+      .from("matches")
+      .update({ home_score: null, away_score: null, status: "scheduled" })
+      .eq("id", matchId);
+
+    setMessage(error ? "No se pudo quitar el resultado." : "Resultado quitado.");
     await loadData();
   }
 
@@ -319,7 +330,7 @@ export function App() {
               {selectedAdminGroup && (
                 <MatchGroup title={selectedAdminGroup.title} matches={selectedAdminGroup.matches}>
                   {selectedAdminGroup.matches.map((match) => (
-                    <ResultRow key={match.id} match={match} onSave={saveResult} />
+                    <ResultRow key={match.id} match={match} onSave={saveResult} onClear={clearResult} />
                   ))}
                 </MatchGroup>
               )}
@@ -590,14 +601,23 @@ function PredictionRow({
   );
 }
 
-function ResultRow({ match, onSave }: { match: Match; onSave: (matchId: string, homeScore: number, awayScore: number) => void }) {
-  const [homeScore, setHomeScore] = useState(match.home_score ?? 0);
-  const [awayScore, setAwayScore] = useState(match.away_score ?? 0);
+function ResultRow({
+  match,
+  onSave,
+  onClear,
+}: {
+  match: Match;
+  onSave: (matchId: string, homeScore: number, awayScore: number) => void;
+  onClear: (matchId: string) => void;
+}) {
+  const [homeScore, setHomeScore] = useState<ScoreInput>(match.home_score ?? "");
+  const [awayScore, setAwayScore] = useState<ScoreInput>(match.away_score ?? "");
   const isFinished = match.status === "finished";
+  const canSave = homeScore !== "" && awayScore !== "";
 
   useEffect(() => {
-    setHomeScore(match.home_score ?? 0);
-    setAwayScore(match.away_score ?? 0);
+    setHomeScore(match.home_score ?? "");
+    setAwayScore(match.away_score ?? "");
   }, [match.away_score, match.home_score]);
 
   return (
@@ -621,12 +641,13 @@ function ResultRow({ match, onSave }: { match: Match; onSave: (matchId: string, 
           </strong>
         )}
       </div>
-      <div className="score-editor">
+      <div className="score-editor result-editor">
         <input
           type="number"
           min="0"
           value={homeScore}
-          onChange={(event) => setHomeScore(Number(event.target.value))}
+          placeholder="Local"
+          onChange={(event) => setHomeScore(event.target.value === "" ? "" : Number(event.target.value))}
           aria-label={`Resultado real de ${match.home_team}`}
         />
         <span>-</span>
@@ -634,17 +655,31 @@ function ResultRow({ match, onSave }: { match: Match; onSave: (matchId: string, 
           type="number"
           min="0"
           value={awayScore}
-          onChange={(event) => setAwayScore(Number(event.target.value))}
+          placeholder="Visita"
+          onChange={(event) => setAwayScore(event.target.value === "" ? "" : Number(event.target.value))}
           aria-label={`Resultado real de ${match.away_team}`}
         />
         <button
           className="icon-button"
-          onClick={() => onSave(match.id, homeScore, awayScore)}
+          disabled={!canSave}
+          onClick={() => {
+            if (homeScore !== "" && awayScore !== "") onSave(match.id, homeScore, awayScore);
+          }}
           aria-label="Guardar resultado real"
           title="Guardar resultado real"
         >
           <Save size={18} />
         </button>
+        {isFinished && (
+          <button
+            className="icon-button danger"
+            onClick={() => onClear(match.id)}
+            aria-label="Quitar resultado real"
+            title="Quitar resultado real"
+          >
+            <RotateCcw size={18} />
+          </button>
+        )}
       </div>
     </article>
   );

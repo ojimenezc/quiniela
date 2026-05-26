@@ -481,6 +481,16 @@ input {
   text-align: center;
 }
 
+.score-editor input::placeholder {
+  color: #8fa197;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.result-editor {
+  min-width: 0;
+}
+
 .icon-button {
   display: inline-grid;
   width: 42px;
@@ -497,6 +507,11 @@ input {
 .icon-button.secondary {
   background: #ffe45c;
   color: #173226;
+}
+
+.icon-button.danger {
+  background: linear-gradient(135deg, #e23c2f, #b8241b);
+  box-shadow: 0 8px 18px rgba(226, 60, 47, 0.24);
 }
 
 .points {
@@ -746,6 +761,10 @@ form button {
     min-width: 0;
   }
 
+  .result-editor {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 46px 46px;
+  }
+
   .score-editor input {
     width: 100%;
     min-height: 46px;
@@ -846,6 +865,10 @@ form button {
 
   .score-editor {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
+  }
+
+  .result-editor {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px 44px;
   }
 
   .leaderboard-row {
