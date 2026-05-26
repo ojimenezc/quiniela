@@ -540,9 +540,13 @@ input[type="number"]::-webkit-outer-spin-button {
   text-align: center;
 }
 
+.result-editor input {
+  width: 78px;
+}
+
 .score-editor input::placeholder {
   color: #8fa197;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
 }
 
@@ -852,7 +856,7 @@ form button {
   }
 
   .result-editor {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 46px 46px 46px;
+    grid-template-columns: minmax(74px, 1fr) auto minmax(74px, 1fr) 46px 46px 46px;
   }
 
   .score-editor input {
@@ -976,7 +980,7 @@ form button {
   }
 
   .result-editor {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px 44px 44px;
+    grid-template-columns: minmax(70px, 1fr) auto minmax(70px, 1fr) 44px 44px 44px;
   }
 
   .leaderboard-row {
