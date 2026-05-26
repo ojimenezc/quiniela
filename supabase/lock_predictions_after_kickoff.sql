@@ -7,9 +7,12 @@ begin
     select 1
     from matches
     where matches.id = new.match_id
-      and matches.starts_at <= now()
+      and (
+        matches.starts_at <= now()
+        or matches.status = 'finished'
+      )
   ) then
-    raise exception 'No se pueden guardar predicciones después de iniciado el partido.';
+    raise exception 'No se pueden guardar predicciones después de iniciado o cerrado el partido.';
   end if;
 
   return new;

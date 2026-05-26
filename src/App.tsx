@@ -107,8 +107,8 @@ export function App() {
     if (!participant) return;
 
     const match = matches.find((item) => item.id === matchId);
-    if (!match || new Date(match.starts_at).getTime() <= Date.now()) {
-      setMessage("Este partido ya inició. No se puede modificar el pronóstico.");
+    if (!match || match.status === "finished" || new Date(match.starts_at).getTime() <= Date.now()) {
+      setMessage("Este partido está cerrado. No se puede modificar el pronóstico.");
       return;
     }
 
@@ -551,7 +551,7 @@ function PredictionRow({
 }) {
   const [homeScore, setHomeScore] = useState(prediction?.home_score ?? 0);
   const [awayScore, setAwayScore] = useState(prediction?.away_score ?? 0);
-  const locked = new Date(match.starts_at).getTime() <= Date.now();
+  const locked = match.status === "finished" || new Date(match.starts_at).getTime() <= Date.now();
   const score = scorePrediction(match, prediction);
 
   return (
