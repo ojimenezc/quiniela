@@ -600,6 +600,14 @@ function PredictionRow({
           {match.venue ? ` · ${match.venue}` : ""}
           {locked ? " · Cerrado" : ""}
         </small>
+        {match.status === "finished" && match.home_score !== null && match.away_score !== null && (
+          <div className="official-score">
+            <span>Final</span>
+            <strong>
+              {match.home_score} - {match.away_score}
+            </strong>
+          </div>
+        )}
       </div>
       <div className="score-editor">
         <input

@@ -434,6 +434,29 @@ h3 {
   line-height: 1.35;
 }
 
+.official-score {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #eef6f0;
+}
+
+.official-score span {
+  color: #61736a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.official-score strong {
+  color: #007a4d;
+  font-size: 0.95rem;
+}
+
 .score-editor {
   display: flex;
   align-items: center;
