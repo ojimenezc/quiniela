@@ -586,6 +586,17 @@ function PredictionRow({
   const [awayScore, setAwayScore] = useState(prediction?.away_score ?? 0);
   const locked = match.status === "finished";
   const score = scorePrediction(match, prediction);
+  const scoreDetails =
+    match.status === "finished" && prediction
+      ? [
+          score.exactHit ? "5 por marcador exacto" : null,
+          !score.exactHit && score.resultHit ? "3 por resultado correcto" : null,
+          !score.exactHit && score.goalHits > 0
+            ? `${score.goalHits} por ${score.goalHits === 1 ? "gol acertado" : "goles acertados"}`
+            : null,
+          score.points === 0 ? "Sin aciertos" : null,
+        ].filter(Boolean)
+      : [];
 
   return (
     <article className={locked ? "match-row locked" : "match-row"}>
@@ -639,7 +650,12 @@ function PredictionRow({
           <Save size={18} />
         </button>
       </div>
-      {match.status === "finished" && <span className="points">{score.points} pts</span>}
+      {match.status === "finished" && (
+        <div className="points-breakdown">
+          <span className="points">{score.points} pts</span>
+          {scoreDetails.length > 0 && <small>{scoreDetails.join(" · ")}</small>}
+        </div>
+      )}
     </article>
   );
 }
