@@ -134,12 +134,12 @@ export function App() {
   }
 
   async function savePrediction(matchId: string, homeScore: number, awayScore: number) {
-    if (!participant) return;
+    if (!participant) return false;
 
     const match = matches.find((item) => item.id === matchId);
     if (!match || match.status === "finished") {
       setMessage("Este partido está cerrado. No se puede modificar el pronóstico.");
-      return;
+      return false;
     }
 
     const nextHomeScore = clampScore(homeScore);
@@ -157,7 +157,7 @@ export function App() {
 
     if (error || !data) {
       setMessage("No se pudo guardar el pronóstico.");
-      return;
+      return false;
     }
 
     setPredictions((currentPredictions) => {
@@ -168,6 +168,7 @@ export function App() {
       return [...currentPredictions, data];
     });
     setMessage("Pronóstico guardado.");
+    return true;
   }
 
   async function saveResult(matchId: string, homeScore: number, awayScore: number) {
@@ -625,13 +626,16 @@ function PredictionRow({
 }: {
   match: Match;
   prediction?: Prediction;
-  onSave: (matchId: string, homeScore: number, awayScore: number) => void;
+  onSave: (matchId: string, homeScore: number, awayScore: number) => Promise<boolean>;
 }) {
   const [homeScore, setHomeScore] = useState<ScoreInput>(prediction?.home_score ?? "");
   const [awayScore, setAwayScore] = useState<ScoreInput>(prediction?.away_score ?? "");
   const [hasUserEdited, setHasUserEdited] = useState(false);
+  const [pendingSave, setPendingSave] = useState<{ homeScore: number; awayScore: number } | null>(null);
   const savedHomeScore = prediction?.home_score;
   const savedAwayScore = prediction?.away_score;
+  const effectiveSavedHomeScore = pendingSave?.homeScore ?? savedHomeScore;
+  const effectiveSavedAwayScore = pendingSave?.awayScore ?? savedAwayScore;
   const locked = match.status === "finished";
   const score = scorePrediction(match, prediction);
   const canSave = homeScore !== "" && awayScore !== "";
@@ -648,42 +652,58 @@ function PredictionRow({
       : [];
 
   useEffect(() => {
-    if (!hasUserEdited) {
+    if (!hasUserEdited && !pendingSave) {
       setHomeScore(prediction?.home_score ?? "");
       setAwayScore(prediction?.away_score ?? "");
     }
-  }, [hasUserEdited, prediction?.away_score, prediction?.home_score]);
+  }, [hasUserEdited, pendingSave, prediction?.away_score, prediction?.home_score]);
+
+  useEffect(() => {
+    if (
+      pendingSave &&
+      prediction?.home_score === pendingSave.homeScore &&
+      prediction?.away_score === pendingSave.awayScore
+    ) {
+      setPendingSave(null);
+    }
+  }, [pendingSave, prediction?.away_score, prediction?.home_score]);
 
   useEffect(() => {
     if (!hasUserEdited || locked || !canSave) return;
-    if (homeScore === savedHomeScore && awayScore === savedAwayScore) return;
+    if (homeScore === effectiveSavedHomeScore && awayScore === effectiveSavedAwayScore) return;
 
     const timeoutId = window.setTimeout(() => {
-      onSave(match.id, homeScore, awayScore);
-      setHasUserEdited(false);
+      saveScores(homeScore, awayScore);
     }, 800);
 
     return () => window.clearTimeout(timeoutId);
   }, [
     awayScore,
     canSave,
+    effectiveSavedAwayScore,
+    effectiveSavedHomeScore,
     hasUserEdited,
     homeScore,
     locked,
     match.id,
-    onSave,
-    savedAwayScore,
-    savedHomeScore,
   ]);
 
-  function saveNow() {
-    if (homeScore === "" || awayScore === "") return;
-    if (homeScore === savedHomeScore && awayScore === savedAwayScore) {
+  function saveScores(nextHomeScore: number, nextAwayScore: number) {
+    if (nextHomeScore === effectiveSavedHomeScore && nextAwayScore === effectiveSavedAwayScore) {
       setHasUserEdited(false);
       return;
     }
-    onSave(match.id, homeScore, awayScore);
+
+    setPendingSave({ homeScore: nextHomeScore, awayScore: nextAwayScore });
     setHasUserEdited(false);
+    void onSave(match.id, nextHomeScore, nextAwayScore).then((saved) => {
+      if (!saved) setPendingSave(null);
+    });
+  }
+
+  function saveNow() {
+    if (homeScore === "" || awayScore === "") return;
+    saveScores(homeScore, awayScore);
   }
 
   return (
