@@ -728,91 +728,93 @@ function ResultRow({
           {match.venue ? ` · ${match.venue}` : ""}
         </small>
       </div>
-      {canEditTeams && (
-        <div className="team-editor">
+      <div className="admin-match-controls">
+        {canEditTeams && (
+          <div className="team-editor">
+            <input
+              value={homeTeam}
+              onChange={(event) => setHomeTeam(event.target.value)}
+              aria-label="Equipo local"
+            />
+            <span>vs</span>
+            <input
+              value={awayTeam}
+              onChange={(event) => setAwayTeam(event.target.value)}
+              aria-label="Equipo visitante"
+            />
+            <button
+              className="icon-button"
+              disabled={!canSaveTeams}
+              onClick={() => onSaveTeams(match.id, homeTeam, awayTeam)}
+              aria-label="Guardar equipos"
+              title="Guardar equipos"
+            >
+              <Save size={18} />
+            </button>
+          </div>
+        )}
+        <div className="score-editor result-editor">
           <input
-            value={homeTeam}
-            onChange={(event) => setHomeTeam(event.target.value)}
-            aria-label="Equipo local"
+            type="number"
+            min="0"
+            max={MAX_SCORE}
+            value={homeScore}
+            placeholder="Local"
+            onChange={(event) => setHomeScore(readScoreInput(event.target.value))}
+            aria-label={`Resultado real de ${match.home_team}`}
           />
-          <span>vs</span>
+          <span>-</span>
           <input
-            value={awayTeam}
-            onChange={(event) => setAwayTeam(event.target.value)}
-            aria-label="Equipo visitante"
+            type="number"
+            min="0"
+            max={MAX_SCORE}
+            value={awayScore}
+            placeholder="Visita"
+            onChange={(event) => setAwayScore(readScoreInput(event.target.value))}
+            aria-label={`Resultado real de ${match.away_team}`}
           />
           <button
             className="icon-button"
-            disabled={!canSaveTeams}
-            onClick={() => onSaveTeams(match.id, homeTeam, awayTeam)}
-            aria-label="Guardar equipos"
-            title="Guardar equipos"
+            disabled={!canSave}
+            onClick={() => {
+              if (homeScore !== "" && awayScore !== "") onSave(match.id, homeScore, awayScore);
+            }}
+            aria-label="Guardar resultado real"
+            title="Guardar resultado real"
           >
             <Save size={18} />
           </button>
+          {!isFinished && (
+            <button
+              className="icon-button finish"
+              disabled={!canSave}
+              onClick={() => {
+                if (homeScore !== "" && awayScore !== "") onFinish(match.id);
+              }}
+              aria-label="Marcar partido como finalizado"
+              title="Marcar partido como finalizado"
+            >
+              <CheckCircle2 size={18} />
+            </button>
+          )}
+          {(isFinished || match.home_score !== null || match.away_score !== null) && (
+            <button
+              className="icon-button danger"
+              onClick={() => onClear(match.id)}
+              aria-label="Quitar marcador y reabrir"
+              title="Quitar marcador y reabrir"
+            >
+              <RotateCcw size={18} />
+            </button>
+          )}
         </div>
-      )}
+      </div>
       <div className="result-status">
         <span>{isFinished ? "Finalizado" : "Pendiente"}</span>
         {isFinished && (
           <strong>
             {match.home_score} - {match.away_score}
           </strong>
-        )}
-      </div>
-      <div className="score-editor result-editor">
-        <input
-          type="number"
-          min="0"
-          max={MAX_SCORE}
-          value={homeScore}
-          placeholder="Local"
-          onChange={(event) => setHomeScore(readScoreInput(event.target.value))}
-          aria-label={`Resultado real de ${match.home_team}`}
-        />
-        <span>-</span>
-        <input
-          type="number"
-          min="0"
-          max={MAX_SCORE}
-          value={awayScore}
-          placeholder="Visita"
-          onChange={(event) => setAwayScore(readScoreInput(event.target.value))}
-          aria-label={`Resultado real de ${match.away_team}`}
-        />
-        <button
-          className="icon-button"
-          disabled={!canSave}
-          onClick={() => {
-            if (homeScore !== "" && awayScore !== "") onSave(match.id, homeScore, awayScore);
-          }}
-          aria-label="Guardar resultado real"
-          title="Guardar resultado real"
-        >
-          <Save size={18} />
-        </button>
-        {!isFinished && (
-          <button
-            className="icon-button finish"
-            disabled={!canSave}
-            onClick={() => {
-              if (homeScore !== "" && awayScore !== "") onFinish(match.id);
-            }}
-            aria-label="Marcar partido como finalizado"
-            title="Marcar partido como finalizado"
-          >
-            <CheckCircle2 size={18} />
-          </button>
-        )}
-        {(isFinished || match.home_score !== null || match.away_score !== null) && (
-          <button
-            className="icon-button danger"
-            onClick={() => onClear(match.id)}
-            aria-label="Quitar marcador y reabrir"
-            title="Quitar marcador y reabrir"
-          >
-            <RotateCcw size={18} />
-          </button>
         )}
       </div>
     </article>
