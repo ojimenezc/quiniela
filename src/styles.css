@@ -464,6 +464,24 @@ h3 {
   min-width: max-content;
 }
 
+.team-editor {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr) 42px;
+  gap: 7px;
+  align-items: center;
+  min-width: min(100%, 520px);
+}
+
+.team-editor span {
+  color: #61736a;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.team-editor input {
+  min-width: 0;
+}
+
 .result-status {
   display: grid;
   justify-items: end;
@@ -809,6 +827,12 @@ form button {
     min-width: 0;
   }
 
+  .team-editor {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 46px;
+    width: 100%;
+    min-width: 0;
+  }
+
   .score-editor {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 46px;
@@ -930,6 +954,14 @@ form button {
 
   .score-editor {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
+  }
+
+  .team-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .team-editor span {
+    display: none;
   }
 
   .result-editor {
