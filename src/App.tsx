@@ -29,6 +29,17 @@ const PHASE_TABS = [
 
 type PhaseTab = (typeof PHASE_TABS)[number]["id"];
 type ScoreInput = number | "";
+type GroupStandingRow = {
+  team: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+};
 
 function isAdminParticipant(participant: Participant | null | undefined) {
   return Boolean(participant?.is_admin || participant?.name.trim().toLowerCase() === "admin");
@@ -262,6 +273,7 @@ export function App() {
   }, [matches, participant, participants, predictions]);
 
   const groupedMatches = useMemo(() => groupMatchesByStage(matches), [matches]);
+  const groupStandings = useMemo(() => buildGroupStandings(matches), [matches]);
   const officialResultsCount = useMemo(
     () =>
       matches.filter(
@@ -390,6 +402,14 @@ export function App() {
         </section>
       </div>
 
+      <section className="panel standings-panel">
+        <div className="section-heading">
+          <Trophy size={20} />
+          <h2>Grupos y posiciones</h2>
+        </div>
+        {loading ? <p>Cargando...</p> : <GroupStandings groups={groupStandings} />}
+      </section>
+
       {isAdmin && (
         <section className="panel admin-panel">
           <div className="section-heading admin-heading">
@@ -431,6 +451,78 @@ export function App() {
       )}
     </main>
   );
+}
+
+function buildGroupStandings(matches: Match[]) {
+  const groups = new Map<string, Map<string, GroupStandingRow>>();
+
+  function getRow(groupName: string, team: string) {
+    const groupRows = groups.get(groupName) ?? new Map<string, GroupStandingRow>();
+    groups.set(groupName, groupRows);
+
+    const existing = groupRows.get(team);
+    if (existing) return existing;
+
+    const row: GroupStandingRow = {
+      team,
+      played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      goalDifference: 0,
+      points: 0,
+    };
+    groupRows.set(team, row);
+    return row;
+  }
+
+  for (const match of matches) {
+    if (!match.group_name) continue;
+
+    const home = getRow(match.group_name, match.home_team);
+    const away = getRow(match.group_name, match.away_team);
+
+    if (match.status !== "finished" || match.home_score === null || match.away_score === null) continue;
+
+    home.played += 1;
+    away.played += 1;
+    home.goalsFor += match.home_score;
+    home.goalsAgainst += match.away_score;
+    away.goalsFor += match.away_score;
+    away.goalsAgainst += match.home_score;
+
+    if (match.home_score > match.away_score) {
+      home.wins += 1;
+      away.losses += 1;
+      home.points += 3;
+    } else if (match.home_score < match.away_score) {
+      away.wins += 1;
+      home.losses += 1;
+      away.points += 3;
+    } else {
+      home.draws += 1;
+      away.draws += 1;
+      home.points += 1;
+      away.points += 1;
+    }
+
+    home.goalDifference = home.goalsFor - home.goalsAgainst;
+    away.goalDifference = away.goalsFor - away.goalsAgainst;
+  }
+
+  return Array.from(groups.entries())
+    .map(([groupName, rows]) => ({
+      groupName,
+      rows: Array.from(rows.values()).sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+        if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+        return a.team.localeCompare(b.team, "es");
+      }),
+    }))
+    .sort((a, b) => a.groupName.localeCompare(b.groupName, "es", { numeric: true }));
 }
 
 function groupMatchesByStage(matches: Match[]) {
@@ -938,6 +1030,46 @@ function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
           <b>{row.points} pts</b>
           <small>{row.exactHits} exactos · {row.resultHits} resultados · {row.goalHits} goles</small>
         </div>
+      ))}
+    </div>
+  );
+}
+
+function GroupStandings({
+  groups,
+}: {
+  groups: Array<{ groupName: string; rows: GroupStandingRow[] }>;
+}) {
+  if (groups.length === 0) {
+    return <p>No hay grupos disponibles.</p>;
+  }
+
+  return (
+    <div className="standings-grid">
+      {groups.map((group) => (
+        <section className="standings-card" key={group.groupName}>
+          <header>
+            <h3>Grupo {group.groupName}</h3>
+          </header>
+          <div className="standings-table" role="table" aria-label={`Posiciones del grupo ${group.groupName}`}>
+            <div className="standings-row standings-head" role="row">
+              <span>Pos</span>
+              <span>Equipo</span>
+              <span>PJ</span>
+              <span>DG</span>
+              <span>Pts</span>
+            </div>
+            {group.rows.map((row, index) => (
+              <div className="standings-row" role="row" key={row.team}>
+                <span>{index + 1}</span>
+                <strong>{row.team}</strong>
+                <span>{row.played}</span>
+                <span>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</span>
+                <b>{row.points}</b>
+              </div>
+            ))}
+          </div>
+        </section>
       ))}
     </div>
   );
