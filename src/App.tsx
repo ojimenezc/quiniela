@@ -1153,6 +1153,9 @@ function GroupStandings({
               <span>Pos</span>
               <span>Equipo</span>
               <span>PJ</span>
+              <span>G</span>
+              <span>E</span>
+              <span>P</span>
               <span>DG</span>
               <span>Pts</span>
             </div>
@@ -1163,6 +1166,9 @@ function GroupStandings({
                   <TeamName name={row.team} />
                 </strong>
                 <span>{row.played}</span>
+                <span>{row.wins}</span>
+                <span>{row.draws}</span>
+                <span>{row.losses}</span>
                 <span>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</span>
                 <b>{row.points}</b>
               </div>
