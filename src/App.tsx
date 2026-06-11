@@ -43,6 +43,11 @@ function readScoreInput(value: string): ScoreInput {
   return value === "" ? "" : clampScore(Number(value));
 }
 
+function isMatchLocked(match: Match, now = Date.now()) {
+  const startsAt = new Date(match.starts_at).getTime();
+  return match.status === "finished" || (Number.isFinite(startsAt) && startsAt <= now);
+}
+
 export function App() {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -54,6 +59,7 @@ export function App() {
   const [activeGroupTitle, setActiveGroupTitle] = useState<string>("");
   const [activeAdminPhase, setActiveAdminPhase] = useState<PhaseTab>("groups");
   const [activeAdminGroupTitle, setActiveAdminGroupTitle] = useState<string>("");
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -77,6 +83,11 @@ export function App() {
 
     return () => window.clearTimeout(timeoutId);
   }, [message, participant]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   async function loadData() {
     setLoading(true);
@@ -137,7 +148,7 @@ export function App() {
     if (!participant) return false;
 
     const match = matches.find((item) => item.id === matchId);
-    if (!match || match.status === "finished") {
+    if (!match || isMatchLocked(match)) {
       setMessage("Este partido está cerrado. No se puede modificar el pronóstico.");
       return false;
     }
@@ -357,6 +368,7 @@ export function App() {
                     <PredictionRow
                       key={match.id}
                       match={match}
+                      now={now}
                       prediction={predictions.find(
                         (item) => item.participant_id === participant.id && item.match_id === match.id,
                       )}
@@ -621,10 +633,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function PredictionRow({
   match,
+  now,
   prediction,
   onSave,
 }: {
   match: Match;
+  now: number;
   prediction?: Prediction;
   onSave: (matchId: string, homeScore: number, awayScore: number) => Promise<boolean>;
 }) {
@@ -636,7 +650,7 @@ function PredictionRow({
   const savedAwayScore = prediction?.away_score;
   const effectiveSavedHomeScore = pendingSave?.homeScore ?? savedHomeScore;
   const effectiveSavedAwayScore = pendingSave?.awayScore ?? savedAwayScore;
-  const locked = match.status === "finished";
+  const locked = isMatchLocked(match, now);
   const score = scorePrediction(match, prediction);
   const canSave = homeScore !== "" && awayScore !== "";
   const scoreDetails =
@@ -689,6 +703,11 @@ function PredictionRow({
   ]);
 
   function saveScores(nextHomeScore: number, nextAwayScore: number) {
+    if (locked) {
+      setHasUserEdited(false);
+      return;
+    }
+
     if (nextHomeScore === effectiveSavedHomeScore && nextAwayScore === effectiveSavedAwayScore) {
       setHasUserEdited(false);
       return;
