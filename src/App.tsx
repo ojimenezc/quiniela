@@ -78,6 +78,7 @@ const TEAM_FLAGS: Record<string, string> = {
 };
 
 type PhaseTab = (typeof PHASE_TABS)[number]["id"];
+type MainTab = "predictions" | "standings";
 type ScoreInput = number | "";
 type GroupStandingRow = {
   team: string;
@@ -135,6 +136,7 @@ export function App() {
   const [activeGroupTitle, setActiveGroupTitle] = useState<string>("");
   const [activeAdminPhase, setActiveAdminPhase] = useState<PhaseTab>("groups");
   const [activeAdminGroupTitle, setActiveAdminGroupTitle] = useState<string>("");
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>("predictions");
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -423,38 +425,68 @@ export function App() {
 
       <div className="layout">
         <section className="panel">
-          <div className="section-heading">
-            <Trophy size={20} />
-            <h2>Mis pronósticos</h2>
+          <div className="main-tabs" role="tablist" aria-label="Vista principal">
+            <button
+              type="button"
+              className={activeMainTab === "predictions" ? "active" : ""}
+              onClick={() => setActiveMainTab("predictions")}
+            >
+              <Trophy size={18} />
+              Pronósticos
+            </button>
+            <button
+              type="button"
+              className={activeMainTab === "standings" ? "active" : ""}
+              onClick={() => setActiveMainTab("standings")}
+            >
+              <BarChart3 size={18} />
+              Grupos
+            </button>
           </div>
-          {loading ? (
-            <p>Cargando...</p>
-          ) : (
-            <>
-              <PhaseTabs activePhase={activePhase} onChange={setActivePhase} groups={groupedMatches} />
-              {visibleGroups.length > 1 && (
-                <GroupCarousel
-                  groups={visibleGroups}
-                  activeTitle={selectedGroupTitle}
-                  onChange={setActiveGroupTitle}
-                />
-              )}
-              {selectedGroup && (
-                <MatchGroup title={selectedGroup.title} matches={selectedGroup.matches}>
-                  {selectedGroup.matches.map((match) => (
-                    <PredictionRow
-                      key={match.id}
-                      match={match}
-                      now={now}
-                      prediction={predictions.find(
-                        (item) => item.participant_id === participant.id && item.match_id === match.id,
-                      )}
-                      onSave={savePrediction}
+          {activeMainTab === "predictions" ? (
+            <section>
+              <div className="section-heading">
+                <Trophy size={20} />
+                <h2>Mis pronósticos</h2>
+              </div>
+              {loading ? (
+                <p>Cargando...</p>
+              ) : (
+                <>
+                  <PhaseTabs activePhase={activePhase} onChange={setActivePhase} groups={groupedMatches} />
+                  {visibleGroups.length > 1 && (
+                    <GroupCarousel
+                      groups={visibleGroups}
+                      activeTitle={selectedGroupTitle}
+                      onChange={setActiveGroupTitle}
                     />
-                  ))}
-                </MatchGroup>
+                  )}
+                  {selectedGroup && (
+                    <MatchGroup title={selectedGroup.title} matches={selectedGroup.matches}>
+                      {selectedGroup.matches.map((match) => (
+                        <PredictionRow
+                          key={match.id}
+                          match={match}
+                          now={now}
+                          prediction={predictions.find(
+                            (item) => item.participant_id === participant.id && item.match_id === match.id,
+                          )}
+                          onSave={savePrediction}
+                        />
+                      ))}
+                    </MatchGroup>
+                  )}
+                </>
               )}
-            </>
+            </section>
+          ) : (
+            <section>
+              <div className="section-heading">
+                <BarChart3 size={20} />
+                <h2>Grupos y posiciones</h2>
+              </div>
+              {loading ? <p>Cargando...</p> : <GroupStandings groups={groupStandings} />}
+            </section>
           )}
         </section>
 
@@ -466,14 +498,6 @@ export function App() {
           <Leaderboard rows={leaderboard} />
         </section>
       </div>
-
-      <section className="panel standings-panel">
-        <div className="section-heading">
-          <Trophy size={20} />
-          <h2>Grupos y posiciones</h2>
-        </div>
-        {loading ? <p>Cargando...</p> : <GroupStandings groups={groupStandings} />}
-      </section>
 
       {isAdmin && (
         <section className="panel admin-panel">
