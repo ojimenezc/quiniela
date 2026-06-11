@@ -26,6 +26,56 @@ const PHASE_TABS = [
   { id: "semis", label: "Semis" },
   { id: "finals", label: "Finales" },
 ] as const;
+const TEAM_FLAGS: Record<string, string> = {
+  Alemania: "🇩🇪",
+  "Arabia Saudita": "🇸🇦",
+  Argelia: "🇩🇿",
+  Argentina: "🇦🇷",
+  Australia: "🇦🇺",
+  Austria: "🇦🇹",
+  Bélgica: "🇧🇪",
+  "Bosnia y Herzegovina": "🇧🇦",
+  Brasil: "🇧🇷",
+  "Cabo Verde": "🇨🇻",
+  Canadá: "🇨🇦",
+  Catar: "🇶🇦",
+  Colombia: "🇨🇴",
+  "Corea del Sur": "🇰🇷",
+  "Costa de Marfil": "🇨🇮",
+  Croacia: "🇭🇷",
+  Curazao: "🇨🇼",
+  Ecuador: "🇪🇨",
+  Egipto: "🇪🇬",
+  Escocia: "🏴",
+  España: "🇪🇸",
+  "Estados Unidos": "🇺🇸",
+  Francia: "🇫🇷",
+  Ghana: "🇬🇭",
+  Haití: "🇭🇹",
+  Inglaterra: "🏴",
+  Irak: "🇮🇶",
+  Irán: "🇮🇷",
+  Japón: "🇯🇵",
+  Jordania: "🇯🇴",
+  Marruecos: "🇲🇦",
+  México: "🇲🇽",
+  Noruega: "🇳🇴",
+  "Nueva Zelanda": "🇳🇿",
+  Panamá: "🇵🇦",
+  Paraguay: "🇵🇾",
+  "Países Bajos": "🇳🇱",
+  Portugal: "🇵🇹",
+  "RD Congo": "🇨🇩",
+  "República Checa": "🇨🇿",
+  Senegal: "🇸🇳",
+  Sudáfrica: "🇿🇦",
+  Suecia: "🇸🇪",
+  Suiza: "🇨🇭",
+  Túnez: "🇹🇳",
+  Turquía: "🇹🇷",
+  Uruguay: "🇺🇾",
+  Uzbekistán: "🇺🇿",
+};
 
 type PhaseTab = (typeof PHASE_TABS)[number]["id"];
 type ScoreInput = number | "";
@@ -57,6 +107,21 @@ function readScoreInput(value: string): ScoreInput {
 function isMatchLocked(match: Match, now = Date.now()) {
   const startsAt = new Date(match.starts_at).getTime();
   return match.status === "finished" || (Number.isFinite(startsAt) && startsAt <= now);
+}
+
+function TeamName({ name }: { name: string }) {
+  const flag = TEAM_FLAGS[name];
+
+  return (
+    <span className="team-name">
+      {flag && (
+        <span className="team-flag" aria-hidden="true">
+          {flag}
+        </span>
+      )}
+      <span>{name}</span>
+    </span>
+  );
 }
 
 export function App() {
@@ -824,7 +889,11 @@ function PredictionRow({
           {match.match_number ? `Partido ${match.match_number} · ` : ""}
           {match.group_name ? `Grupo ${match.group_name}` : match.stage}
         </span>
-        <strong>{match.home_team} vs {match.away_team}</strong>
+        <strong className="match-teams">
+          <TeamName name={match.home_team} />
+          <span>vs</span>
+          <TeamName name={match.away_team} />
+        </strong>
         <small>
           {new Date(match.starts_at).toLocaleString("es-CR")}
           {match.venue ? ` · ${match.venue}` : ""}
@@ -919,7 +988,11 @@ function ResultRow({
           {match.match_number ? `Partido ${match.match_number} · ` : ""}
           {match.group_name ? `Grupo ${match.group_name}` : match.stage}
         </span>
-        <strong>{match.home_team} vs {match.away_team}</strong>
+        <strong className="match-teams">
+          <TeamName name={match.home_team} />
+          <span>vs</span>
+          <TeamName name={match.away_team} />
+        </strong>
         <small>
           {new Date(match.starts_at).toLocaleString("es-CR")}
           {match.venue ? ` · ${match.venue}` : ""}
@@ -1062,7 +1135,9 @@ function GroupStandings({
             {group.rows.map((row, index) => (
               <div className="standings-row" role="row" key={row.team}>
                 <span>{index + 1}</span>
-                <strong>{row.team}</strong>
+                <strong>
+                  <TeamName name={row.team} />
+                </strong>
                 <span>{row.played}</span>
                 <span>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</span>
                 <b>{row.points}</b>

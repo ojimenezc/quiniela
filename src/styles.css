@@ -436,6 +436,36 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.match-teams,
+.team-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.match-teams {
+  flex-wrap: wrap;
+}
+
+.match-teams > span:not(.team-name) {
+  color: #61736a;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.team-name > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-flag {
+  flex: 0 0 auto;
+  font-size: 1.1em;
+  line-height: 1;
+}
+
 .match-info small {
   line-height: 1.35;
 }
@@ -691,6 +721,10 @@ input[type="number"]::-webkit-outer-spin-button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.standings-row .team-name {
+  width: 100%;
 }
 
 .standings-row span:not(:nth-child(2)),
