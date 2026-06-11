@@ -12,10 +12,10 @@ alter table matches add column if not exists match_number integer;
 insert into matches (match_number, stage, group_name, home_team, away_team, starts_at, venue, status)
 values
   (1, 'Jornada 1', 'A', 'México', 'Sudáfrica', '2026-06-11T19:00:00Z', 'Mexico City', 'scheduled'),
-  (2, 'Jornada 1', 'A', 'Corea del Sur', 'República Checa', '2026-06-12T02:00:00Z', 'Guadalajara (Zapopan)', 'scheduled'),
-  (3, 'Jornada 8', 'A', 'República Checa', 'Sudáfrica', '2026-06-18T16:00:00Z', 'Atlanta', 'scheduled'),
+  (2, 'Jornada 1', 'A', 'Corea del Sur', 'Chequia', '2026-06-12T02:00:00Z', 'Guadalajara (Zapopan)', 'scheduled'),
+  (3, 'Jornada 8', 'A', 'Chequia', 'Sudáfrica', '2026-06-18T16:00:00Z', 'Atlanta', 'scheduled'),
   (4, 'Jornada 8', 'A', 'México', 'Corea del Sur', '2026-06-19T01:00:00Z', 'Guadalajara (Zapopan)', 'scheduled'),
-  (5, 'Jornada 14', 'A', 'República Checa', 'México', '2026-06-25T01:00:00Z', 'Mexico City', 'scheduled'),
+  (5, 'Jornada 14', 'A', 'Chequia', 'México', '2026-06-25T01:00:00Z', 'Mexico City', 'scheduled'),
   (6, 'Jornada 14', 'A', 'Sudáfrica', 'Corea del Sur', '2026-06-25T01:00:00Z', 'Monterrey (Guadalupe)', 'scheduled'),
   (7, 'Jornada 2', 'B', 'Canadá', 'Bosnia y Herzegovina', '2026-06-12T19:00:00Z', 'Toronto', 'scheduled'),
   (8, 'Jornada 3', 'B', 'Catar', 'Suiza', '2026-06-13T19:00:00Z', 'San Francisco Bay Area (Santa Clara)', 'scheduled'),

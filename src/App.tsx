@@ -46,13 +46,13 @@ const TEAM_FLAGS: Record<string, string> = {
   Curazao: "🇨🇼",
   Ecuador: "🇪🇨",
   Egipto: "🇪🇬",
-  Escocia: "🏴",
+  Escocia: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",
   España: "🇪🇸",
   "Estados Unidos": "🇺🇸",
   Francia: "🇫🇷",
   Ghana: "🇬🇭",
   Haití: "🇭🇹",
-  Inglaterra: "🏴",
+  Inglaterra: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}",
   Irak: "🇮🇶",
   Irán: "🇮🇷",
   Japón: "🇯🇵",
@@ -66,6 +66,7 @@ const TEAM_FLAGS: Record<string, string> = {
   "Países Bajos": "🇳🇱",
   Portugal: "🇵🇹",
   "RD Congo": "🇨🇩",
+  Chequia: "🇨🇿",
   "República Checa": "🇨🇿",
   Senegal: "🇸🇳",
   Sudáfrica: "🇿🇦",
@@ -75,6 +76,9 @@ const TEAM_FLAGS: Record<string, string> = {
   Turquía: "🇹🇷",
   Uruguay: "🇺🇾",
   Uzbekistán: "🇺🇿",
+};
+const TEAM_DISPLAY_NAMES: Record<string, string> = {
+  "República Checa": "Chequia",
 };
 
 type PhaseTab = (typeof PHASE_TABS)[number]["id"];
@@ -112,6 +116,7 @@ function isMatchLocked(match: Match, now = Date.now()) {
 
 function TeamName({ name }: { name: string }) {
   const flag = TEAM_FLAGS[name];
+  const displayName = TEAM_DISPLAY_NAMES[name] ?? name;
 
   return (
     <span className="team-name">
@@ -120,7 +125,7 @@ function TeamName({ name }: { name: string }) {
           {flag}
         </span>
       )}
-      <span>{name}</span>
+      <span>{displayName}</span>
     </span>
   );
 }
