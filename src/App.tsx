@@ -1150,7 +1150,7 @@ function GroupStandings({
           </header>
           <div className="standings-table" role="table" aria-label={`Posiciones del grupo ${group.groupName}`}>
             <div className="standings-row standings-head" role="row">
-              <span>Pos</span>
+              <span>#</span>
               <span>Equipo</span>
               <span>PJ</span>
               <span>G</span>

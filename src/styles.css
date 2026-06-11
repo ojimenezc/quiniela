@@ -1100,6 +1100,29 @@ form button {
   .login-panel h1 {
     font-size: 1.9rem;
   }
+
+  .standings-row {
+    grid-template-columns: 20px minmax(72px, 1fr) repeat(4, 20px) 28px 28px;
+    gap: 3px;
+    padding: 8px 5px;
+    font-size: 0.72rem;
+  }
+
+  .standings-head {
+    font-size: 0.58rem;
+  }
+
+  .standings-row strong {
+    line-height: 1.18;
+  }
+
+  .standings-row .team-name {
+    gap: 3px;
+  }
+
+  .team-flag {
+    font-size: 1em;
+  }
 }
 
 @media (max-width: 390px) {
