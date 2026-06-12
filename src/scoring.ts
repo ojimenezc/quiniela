@@ -1,5 +1,11 @@
 import type { Match, Prediction } from "./types";
 
+export const SCORING_RULES = [
+  { label: "Marcador exacto", points: 5, description: "acertar los goles de ambos equipos." },
+  { label: "Resultado correcto", points: 3, description: "acertar ganador o empate sin marcador exacto." },
+  { label: "Gol acertado", points: 1, description: "por cada equipo cuyo gol pronosticado coincida." },
+] as const;
+
 export function matchOutcome(home: number, away: number) {
   if (home > away) return "home";
   if (away > home) return "away";
@@ -33,4 +39,27 @@ export function scorePrediction(match: Match, prediction?: Prediction) {
     resultHit,
     goalHits,
   };
+}
+
+export function describePredictionScore(match: Match, prediction?: Prediction) {
+  const score = scorePrediction(match, prediction);
+
+  if (match.status !== "finished" || match.home_score === null || match.away_score === null) {
+    return { ...score, details: ["Pendiente de resultado oficial."] };
+  }
+
+  if (!prediction) {
+    return { ...score, details: ["Sin pronóstico guardado para este partido."] };
+  }
+
+  const details = [
+    score.exactHit ? "Marcador exacto: +5 pts." : null,
+    !score.exactHit && score.resultHit ? "Resultado correcto: +3 pts." : null,
+    !score.exactHit && score.goalHits > 0
+      ? `Goles acertados: +${score.goalHits} ${score.goalHits === 1 ? "pto" : "pts"}.`
+      : null,
+    score.points === 0 ? "No acertó marcador, resultado ni goles individuales." : null,
+  ].filter((detail): detail is string => Boolean(detail));
+
+  return { ...score, details };
 }

@@ -35,6 +35,9 @@ export type LeaderboardRow = {
   points: number;
   exactHits: number;
   resultHits: number;
+  resultOnlyHits: number;
   goalHits: number;
+  goalBonusHits: number;
+  scoredPredictions: number;
   predictions: number;
 };

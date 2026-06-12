@@ -611,6 +611,44 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 700;
 }
 
+.scoring-rules {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 16px;
+  padding: 12px;
+  border: 1px solid #deebe3;
+  border-radius: 8px;
+  background: #f7faf7;
+}
+
+.scoring-rules > strong {
+  color: #10251c;
+}
+
+.scoring-rules > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scoring-rules span {
+  padding: 9px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #61736a;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.scoring-rules b {
+  color: #007a4d;
+}
+
+.scoring-rules small {
+  color: #61736a;
+  line-height: 1.35;
+}
+
 .result-editor {
   min-width: 0;
 }
@@ -692,6 +730,10 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .leaderboard-row small {
   grid-column: 2 / -1;
+}
+
+.leaderboard-context {
+  color: #61736a;
 }
 
 .standings-grid {
@@ -1026,6 +1068,10 @@ form button {
     min-height: 46px;
     font-size: 1.05rem;
     font-weight: 800;
+  }
+
+  .scoring-rules > div {
+    grid-template-columns: 1fr;
   }
 
   .icon-button {

@@ -11,7 +11,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { supabase } from "./supabase";
-import { scorePrediction } from "./scoring";
+import { SCORING_RULES, describePredictionScore, scorePrediction } from "./scoring";
 import type { LeaderboardRow, Match, Participant, Prediction } from "./types";
 import type { ReactNode } from "react";
 
@@ -319,7 +319,10 @@ export function App() {
       let points = 0;
       let exactHits = 0;
       let resultHits = 0;
+      let resultOnlyHits = 0;
       let goalHits = 0;
+      let goalBonusHits = 0;
+      let scoredPredictions = 0;
       let predictionCount = 0;
 
       for (const match of matches) {
@@ -331,10 +334,28 @@ export function App() {
         points += score.points;
         exactHits += Number(score.exactHit);
         resultHits += Number(score.resultHit);
+        resultOnlyHits += Number(score.resultHit && !score.exactHit);
         goalHits += score.goalHits;
+        goalBonusHits += score.exactHit ? 0 : score.goalHits;
+        scoredPredictions += Number(
+          Boolean(prediction) &&
+            match.status === "finished" &&
+            match.home_score !== null &&
+            match.away_score !== null,
+        );
       }
 
-      return { participant: item, points, exactHits, resultHits, goalHits, predictions: predictionCount };
+      return {
+        participant: item,
+        points,
+        exactHits,
+        resultHits,
+        resultOnlyHits,
+        goalHits,
+        goalBonusHits,
+        scoredPredictions,
+        predictions: predictionCount,
+      };
     });
 
     return rows.sort((a, b) => {
@@ -454,6 +475,7 @@ export function App() {
                 <Trophy size={20} />
                 <h2>Mis pronósticos</h2>
               </div>
+              <ScoringRules />
               {loading ? (
                 <p>Cargando...</p>
               ) : (
@@ -817,6 +839,22 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ScoringRules() {
+  return (
+    <div className="scoring-rules" aria-label="Reglas de puntaje">
+      <strong>Reglas de puntaje</strong>
+      <div>
+        {SCORING_RULES.map((rule) => (
+          <span key={rule.label}>
+            <b>{rule.points}</b> {rule.points === 1 ? "pto" : "pts"} · {rule.label}: {rule.description}
+          </span>
+        ))}
+      </div>
+      <small>Si aciertas el marcador exacto recibes 5 pts totales; no se suman puntos extra por resultado o goles.</small>
+    </div>
+  );
+}
+
 function PredictionRow({
   match,
   now,
@@ -837,19 +875,8 @@ function PredictionRow({
   const effectiveSavedHomeScore = pendingSave?.homeScore ?? savedHomeScore;
   const effectiveSavedAwayScore = pendingSave?.awayScore ?? savedAwayScore;
   const locked = isMatchLocked(match, now);
-  const score = scorePrediction(match, prediction);
+  const score = describePredictionScore(match, prediction);
   const canSave = homeScore !== "" && awayScore !== "";
-  const scoreDetails =
-    match.status === "finished" && prediction
-      ? [
-          score.exactHit ? "5 por marcador exacto" : null,
-          !score.exactHit && score.resultHit ? "3 por resultado correcto" : null,
-          !score.exactHit && score.goalHits > 0
-            ? `${score.goalHits} por ${score.goalHits === 1 ? "gol acertado" : "goles acertados"}`
-            : null,
-          score.points === 0 ? "Sin aciertos" : null,
-        ].filter(Boolean)
-      : [];
 
   useEffect(() => {
     if (!hasUserEdited && !pendingSave) {
@@ -971,7 +998,7 @@ function PredictionRow({
       {match.status === "finished" && (
         <div className="points-breakdown">
           <span className="points">{score.points} pts</span>
-          {scoreDetails.length > 0 && <small>{scoreDetails.join(" · ")}</small>}
+          <small>{score.details.join(" ")}</small>
         </div>
       )}
     </article>
@@ -1125,14 +1152,26 @@ function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
 
   return (
     <div className="leaderboard">
-      {visibleRows.map((row, index) => (
-        <div className="leaderboard-row" key={row.participant.id}>
-          <strong>#{index + 1}</strong>
-          <span>{row.participant.name}</span>
-          <b>{row.points} pts</b>
-          <small>{row.exactHits} exactos · {row.resultHits} resultados · {row.goalHits} goles</small>
-        </div>
-      ))}
+      {visibleRows.map((row, index) => {
+        const exactPoints = row.exactHits * 5;
+        const resultPoints = row.resultOnlyHits * 3;
+
+        return (
+          <div className="leaderboard-row" key={row.participant.id}>
+            <strong>#{index + 1}</strong>
+            <span>{row.participant.name}</span>
+            <b>{row.points} pts</b>
+            <small>
+              {row.points} pts = {row.exactHits} exactos ({exactPoints}) + {row.resultOnlyHits} resultados (
+              {resultPoints}) + {row.goalBonusHits} goles ({row.goalBonusHits}).
+            </small>
+            <small className="leaderboard-context">
+              Puntúan {row.scoredPredictions} de {row.predictions} pronósticos guardados con resultado oficial.
+              Desempate: exactos, luego resultados.
+            </small>
+          </div>
+        );
+      })}
     </div>
   );
 }
