@@ -95,6 +95,7 @@ type GroupStandingRow = {
   goalDifference: number;
   points: number;
 };
+type MatchGroupData = { title: string; matches: Match[] };
 
 function isAdminParticipant(participant: Participant | null | undefined) {
   return Boolean(participant?.is_admin || participant?.name.trim().toLowerCase() === "admin");
@@ -143,6 +144,7 @@ export function App() {
   const [activeAdminGroupTitle, setActiveAdminGroupTitle] = useState<string>("");
   const [activeMainTab, setActiveMainTab] = useState<MainTab>("predictions");
   const [now, setNow] = useState(() => Date.now());
+  const [didSelectCurrentDate, setDidSelectCurrentDate] = useState(false);
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -365,7 +367,8 @@ export function App() {
     });
   }, [matches, participant, participants, predictions]);
 
-  const groupedMatches = useMemo(() => groupMatchesByStage(matches), [matches]);
+  const resolvedMatches = useMemo(() => resolveAutomaticTeams(matches), [matches]);
+  const groupedMatches = useMemo(() => groupMatchesByStage(resolvedMatches), [resolvedMatches]);
   const groupStandings = useMemo(() => buildGroupStandings(matches), [matches]);
   const officialResultsCount = useMemo(
     () =>
@@ -395,21 +398,44 @@ export function App() {
         ? "Admin"
         : officialResultsCount === 0
           ? "Sin resultados"
-        : `#${leaderboard.findIndex((row) => row.participant.id === participant.id) + 1}`;
+          : `#${leaderboard.findIndex((row) => row.participant.id === participant.id) + 1}`;
+  const todaysMatchesCount = useMemo(() => countMatchesOnLocalDate(matches, now), [matches, now]);
+  const pendingResultsCount = matches.length - officialResultsCount;
 
   useEffect(() => {
-    const firstVisibleGroup = visibleGroups[0]?.title ?? "";
-    if (firstVisibleGroup && !visibleGroups.some((group) => group.title === activeGroupTitle)) {
-      setActiveGroupTitle(firstVisibleGroup);
+    if (didSelectCurrentDate || groupedMatches.length === 0) return;
+
+    const currentSelection = findCurrentMatchGroup(groupedMatches, now);
+    if (currentSelection) {
+      setActivePhase(getPhaseTab(currentSelection.title));
+      setActiveGroupTitle(currentSelection.title);
+      setActiveAdminPhase(getPhaseTab(currentSelection.title));
+      setActiveAdminGroupTitle(currentSelection.title);
+      setDidSelectCurrentDate(true);
     }
-  }, [activeGroupTitle, visibleGroups]);
+  }, [didSelectCurrentDate, groupedMatches, now]);
 
   useEffect(() => {
-    const firstVisibleGroup = adminVisibleGroups[0]?.title ?? "";
-    if (firstVisibleGroup && !adminVisibleGroups.some((group) => group.title === activeAdminGroupTitle)) {
-      setActiveAdminGroupTitle(firstVisibleGroup);
+    const currentSelection = findCurrentMatchGroup(groupedMatches, now);
+    const fallbackGroupTitle =
+      currentSelection && getPhaseTab(currentSelection.title) === activePhase
+        ? currentSelection.title
+        : visibleGroups[0]?.title ?? "";
+    if (fallbackGroupTitle && !visibleGroups.some((group) => group.title === activeGroupTitle)) {
+      setActiveGroupTitle(fallbackGroupTitle);
     }
-  }, [activeAdminGroupTitle, adminVisibleGroups]);
+  }, [activeGroupTitle, activePhase, groupedMatches, now, visibleGroups]);
+
+  useEffect(() => {
+    const currentSelection = findCurrentMatchGroup(groupedMatches, now);
+    const fallbackGroupTitle =
+      currentSelection && getPhaseTab(currentSelection.title) === activeAdminPhase
+        ? currentSelection.title
+        : adminVisibleGroups[0]?.title ?? "";
+    if (fallbackGroupTitle && !adminVisibleGroups.some((group) => group.title === activeAdminGroupTitle)) {
+      setActiveAdminGroupTitle(fallbackGroupTitle);
+    }
+  }, [activeAdminGroupTitle, activeAdminPhase, adminVisibleGroups, groupedMatches, now]);
 
   function logout() {
     localStorage.removeItem(SESSION_KEY);
@@ -441,90 +467,102 @@ export function App() {
       )}
 
       <section className="summary-grid">
-        <Metric label="Tu posición" value={currentParticipantRank} />
-        <Metric
-          label="Tus puntos"
-          value={String(leaderboard.find((row) => row.participant.id === participant.id)?.points ?? 0)}
-        />
-        <Metric label="Resultados oficiales" value={`${officialResultsCount}/${matches.length}`} />
+        {isAdmin ? (
+          <>
+            <Metric label="Resultados oficiales" value={`${officialResultsCount}/${matches.length}`} />
+            <Metric label="Partidos de hoy" value={String(todaysMatchesCount)} />
+            <Metric label="Pendientes" value={String(pendingResultsCount)} />
+          </>
+        ) : (
+          <>
+            <Metric label="Tu posición" value={currentParticipantRank} />
+            <Metric
+              label="Tus puntos"
+              value={String(leaderboard.find((row) => row.participant.id === participant.id)?.points ?? 0)}
+            />
+            <Metric label="Resultados oficiales" value={`${officialResultsCount}/${matches.length}`} />
+          </>
+        )}
       </section>
 
-      <div className="layout">
-        <section className="panel">
-          <div className="main-tabs" role="tablist" aria-label="Vista principal">
-            <button
-              type="button"
-              className={activeMainTab === "predictions" ? "active" : ""}
-              onClick={() => setActiveMainTab("predictions")}
-            >
-              <Trophy size={18} />
-              Pronósticos
-            </button>
-            <button
-              type="button"
-              className={activeMainTab === "standings" ? "active" : ""}
-              onClick={() => setActiveMainTab("standings")}
-            >
-              <BarChart3 size={18} />
-              Grupos
-            </button>
-          </div>
-          {activeMainTab === "predictions" ? (
-            <section>
-              <div className="section-heading">
-                <Trophy size={20} />
-                <h2>Mis pronósticos</h2>
-              </div>
-              <ScoringRules />
-              {loading ? (
-                <p>Cargando...</p>
-              ) : (
-                <>
-                  <PhaseTabs activePhase={activePhase} onChange={setActivePhase} groups={groupedMatches} />
-                  {visibleGroups.length > 1 && (
-                    <GroupCarousel
-                      groups={visibleGroups}
-                      activeTitle={selectedGroupTitle}
-                      onChange={setActiveGroupTitle}
-                    />
-                  )}
-                  {selectedGroup && (
-                    <MatchGroup title={selectedGroup.title} matches={selectedGroup.matches}>
-                      {selectedGroup.matches.map((match) => (
-                        <PredictionRow
-                          key={match.id}
-                          match={match}
-                          now={now}
-                          prediction={predictions.find(
-                            (item) => item.participant_id === participant.id && item.match_id === match.id,
-                          )}
-                          onSave={savePrediction}
-                        />
-                      ))}
-                    </MatchGroup>
-                  )}
-                </>
-              )}
-            </section>
-          ) : (
-            <section>
-              <div className="section-heading">
-                <BarChart3 size={20} />
-                <h2>Grupos y posiciones</h2>
-              </div>
-              {loading ? <p>Cargando...</p> : <GroupStandings groups={groupStandings} />}
-            </section>
-          )}
-        </section>
+      {!isAdmin && (
+        <div className="layout">
+          <section className="panel">
+            <div className="main-tabs" role="tablist" aria-label="Vista principal">
+              <button
+                type="button"
+                className={activeMainTab === "predictions" ? "active" : ""}
+                onClick={() => setActiveMainTab("predictions")}
+              >
+                <Trophy size={18} />
+                Pronósticos
+              </button>
+              <button
+                type="button"
+                className={activeMainTab === "standings" ? "active" : ""}
+                onClick={() => setActiveMainTab("standings")}
+              >
+                <BarChart3 size={18} />
+                Grupos
+              </button>
+            </div>
+            {activeMainTab === "predictions" ? (
+              <section>
+                <div className="section-heading">
+                  <Trophy size={20} />
+                  <h2>Mis pronósticos</h2>
+                </div>
+                <ScoringRules />
+                {loading ? (
+                  <p>Cargando...</p>
+                ) : (
+                  <>
+                    <PhaseTabs activePhase={activePhase} onChange={setActivePhase} groups={groupedMatches} />
+                    {visibleGroups.length > 1 && (
+                      <GroupCarousel
+                        groups={visibleGroups}
+                        activeTitle={selectedGroupTitle}
+                        onChange={setActiveGroupTitle}
+                      />
+                    )}
+                    {selectedGroup && (
+                      <MatchGroup title={selectedGroup.title} matches={selectedGroup.matches}>
+                        {selectedGroup.matches.map((match) => (
+                          <PredictionRow
+                            key={match.id}
+                            match={match}
+                            now={now}
+                            prediction={predictions.find(
+                              (item) => item.participant_id === participant.id && item.match_id === match.id,
+                            )}
+                            onSave={savePrediction}
+                          />
+                        ))}
+                      </MatchGroup>
+                    )}
+                  </>
+                )}
+              </section>
+            ) : (
+              <section>
+                <div className="section-heading">
+                  <BarChart3 size={20} />
+                  <h2>Grupos y posiciones</h2>
+                </div>
+                {loading ? <p>Cargando...</p> : <GroupStandings groups={groupStandings} />}
+              </section>
+            )}
+          </section>
 
-        <section className="panel">
-          <div className="section-heading">
-            <BarChart3 size={20} />
-            <h2>Ranking</h2>
-          </div>
-          <Leaderboard rows={leaderboard} />
-        </section>
-      </div>
+          <section className="panel">
+            <div className="section-heading">
+              <BarChart3 size={20} />
+              <h2>Ranking</h2>
+            </div>
+            <Leaderboard rows={leaderboard} />
+          </section>
+        </div>
+      )}
 
       {isAdmin && (
         <section className="panel admin-panel">
@@ -641,6 +679,112 @@ function buildGroupStandings(matches: Match[]) {
     .sort((a, b) => a.groupName.localeCompare(b.groupName, "es", { numeric: true }));
 }
 
+function compareStandingRows(a: GroupStandingRow, b: GroupStandingRow) {
+  if (b.points !== a.points) return b.points - a.points;
+  if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+  if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+  return a.team.localeCompare(b.team, "es");
+}
+
+function getFinishedWinner(match: Match) {
+  if (match.status !== "finished" || match.home_score === null || match.away_score === null) return null;
+  if (match.home_score === match.away_score) return null;
+  return match.home_score > match.away_score ? match.home_team : match.away_team;
+}
+
+function getFinishedLoser(match: Match) {
+  if (match.status !== "finished" || match.home_score === null || match.away_score === null) return null;
+  if (match.home_score === match.away_score) return null;
+  return match.home_score > match.away_score ? match.away_team : match.home_team;
+}
+
+function resolveAutomaticTeams(matches: Match[]) {
+  const standingsByGroup = new Map(buildGroupStandings(matches).map((group) => [group.groupName, group.rows]));
+  const groupCompletion = new Map<string, boolean>();
+  const assignedThirdPlaceGroups = new Set<string>();
+  const resolvedByNumber = new Map<number, Match>();
+
+  for (const groupName of standingsByGroup.keys()) {
+    const groupMatches = matches.filter((match) => match.group_name === groupName);
+    groupCompletion.set(
+      groupName,
+      groupMatches.length > 0 &&
+        groupMatches.every(
+          (match) => match.status === "finished" && match.home_score !== null && match.away_score !== null,
+        ),
+    );
+  }
+
+  function resolveGroupPlaceholder(teamName: string) {
+    const match = teamName.match(/^([123])\.º Grupo ([A-L](?:\/[A-L])*)$/);
+    if (!match) return teamName;
+
+    const rank = Number(match[1]);
+    const candidateGroups = match[2].split("/");
+
+    if (rank === 1 || rank === 2) {
+      const groupName = candidateGroups[0];
+      if (!groupCompletion.get(groupName)) return teamName;
+      return standingsByGroup.get(groupName)?.[rank - 1]?.team ?? teamName;
+    }
+
+    if (rank !== 3 || !candidateGroups.every((groupName) => groupCompletion.get(groupName))) {
+      return teamName;
+    }
+
+    const thirdPlaceCandidates = candidateGroups
+      .map((groupName) => ({ groupName, row: standingsByGroup.get(groupName)?.[2] }))
+      .filter((candidate): candidate is { groupName: string; row: GroupStandingRow } =>
+        Boolean(candidate.row && !assignedThirdPlaceGroups.has(candidate.groupName)),
+      )
+      .sort((a, b) => compareStandingRows(a.row, b.row));
+
+    const selected = thirdPlaceCandidates[0];
+    if (!selected) return teamName;
+
+    assignedThirdPlaceGroups.add(selected.groupName);
+    return selected.row.team;
+  }
+
+  function resolveMatchReference(teamName: string) {
+    const winnerMatch = teamName.match(/^Ganador (\d+)$/);
+    if (winnerMatch) {
+      const sourceMatch = resolvedByNumber.get(Number(winnerMatch[1]));
+      return sourceMatch ? getFinishedWinner(sourceMatch) ?? teamName : teamName;
+    }
+
+    const loserMatch = teamName.match(/^Perdedor (\d+)$/);
+    if (loserMatch) {
+      const sourceMatch = resolvedByNumber.get(Number(loserMatch[1]));
+      return sourceMatch ? getFinishedLoser(sourceMatch) ?? teamName : teamName;
+    }
+
+    return resolveGroupPlaceholder(teamName);
+  }
+
+  const orderedMatches = [...matches].sort((a, b) => {
+    const matchNumberA = a.match_number ?? Number.MAX_SAFE_INTEGER;
+    const matchNumberB = b.match_number ?? Number.MAX_SAFE_INTEGER;
+    if (matchNumberA !== matchNumberB) return matchNumberA - matchNumberB;
+    return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+  });
+
+  for (const match of orderedMatches) {
+    const resolvedMatch = {
+      ...match,
+      home_team: resolveMatchReference(match.home_team),
+      away_team: resolveMatchReference(match.away_team),
+    };
+    if (resolvedMatch.match_number !== null) {
+      resolvedByNumber.set(resolvedMatch.match_number, resolvedMatch);
+    }
+  }
+
+  return matches.map((match) =>
+    match.match_number === null ? match : resolvedByNumber.get(match.match_number) ?? match,
+  );
+}
+
 function groupMatchesByStage(matches: Match[]) {
   const groups = new Map<string, Match[]>();
 
@@ -661,6 +805,32 @@ function groupMatchesByStage(matches: Match[]) {
       (a, b) =>
         new Date(a.matches[0].starts_at).getTime() - new Date(b.matches[0].starts_at).getTime(),
     );
+}
+
+function toLocalDateKey(timestamp: string | number | Date) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function countMatchesOnLocalDate(matches: Match[], now: number) {
+  const todayKey = toLocalDateKey(now);
+  return matches.filter((match) => toLocalDateKey(match.starts_at) === todayKey).length;
+}
+
+function findCurrentMatchGroup(groups: MatchGroupData[], now: number) {
+  const todayKey = toLocalDateKey(now);
+  const todaysGroup = groups.find((group) =>
+    group.matches.some((match) => toLocalDateKey(match.starts_at) === todayKey),
+  );
+  if (todaysGroup) return todaysGroup;
+
+  const nextGroup = groups.find((group) =>
+    group.matches.some((match) => new Date(match.starts_at).getTime() >= now),
+  );
+  return nextGroup ?? groups[groups.length - 1];
 }
 
 function getPhaseTab(stage: string): PhaseTab {
