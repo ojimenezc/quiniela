@@ -15,7 +15,6 @@ export function matchOutcome(home: number, away: number) {
 export function scorePrediction(match: Match, prediction?: Prediction) {
   if (
     !prediction ||
-    match.status !== "finished" ||
     match.home_score === null ||
     match.away_score === null
   ) {
@@ -44,8 +43,8 @@ export function scorePrediction(match: Match, prediction?: Prediction) {
 export function describePredictionScore(match: Match, prediction?: Prediction) {
   const score = scorePrediction(match, prediction);
 
-  if (match.status !== "finished" || match.home_score === null || match.away_score === null) {
-    return { ...score, details: ["Pendiente de resultado oficial."] };
+  if (match.home_score === null || match.away_score === null) {
+    return { ...score, details: ["Pendiente de marcador."] };
   }
 
   if (!prediction) {

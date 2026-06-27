@@ -351,7 +351,6 @@ export function App() {
         goalBonusHits += score.exactHit ? 0 : score.goalHits;
         scoredPredictions += Number(
           Boolean(prediction) &&
-            match.status === "finished" &&
             match.home_score !== null &&
             match.away_score !== null,
         );
@@ -387,6 +386,10 @@ export function App() {
       ).length,
     [matches],
   );
+  const scoreableResultsCount = useMemo(
+    () => matches.filter((match) => hasCompleteScore(match)).length,
+    [matches],
+  );
   const visibleGroups = useMemo(
     () => groupedMatches.filter((group) => getPhaseTab(group.title) === activePhase),
     [activePhase, groupedMatches],
@@ -406,7 +409,7 @@ export function App() {
       ? "-"
       : isAdmin
         ? "Admin"
-        : officialResultsCount === 0
+        : scoreableResultsCount === 0
           ? "Sin resultados"
           : `#${leaderboard.findIndex((row) => row.participant.id === participant.id) + 1}`;
   const todaysMatchesCount = useMemo(() => countMatchesOnLocalDate(matches, now), [matches, now]);
@@ -480,6 +483,7 @@ export function App() {
         {isAdmin ? (
           <>
             <Metric label="Resultados oficiales" value={`${officialResultsCount}/${matches.length}`} />
+            <Metric label="Marcadores cargados" value={`${scoreableResultsCount}/${matches.length}`} />
             <Metric label="Partidos de hoy" value={String(todaysMatchesCount)} />
             <Metric label="Pendientes" value={String(pendingResultsCount)} />
           </>
@@ -490,7 +494,7 @@ export function App() {
               label="Tus puntos"
               value={String(leaderboard.find((row) => row.participant.id === participant.id)?.points ?? 0)}
             />
-            <Metric label="Resultados oficiales" value={`${officialResultsCount}/${matches.length}`} />
+            <Metric label="Marcadores puntuables" value={`${scoreableResultsCount}/${matches.length}`} />
           </>
         )}
       </section>
@@ -1229,9 +1233,9 @@ function PredictionRow({
           {match.venue ? ` · ${match.venue}` : ""}
           {locked ? " · Cerrado" : ""}
         </small>
-        {match.status === "finished" && match.home_score !== null && match.away_score !== null && (
+        {hasCompleteScore(match) && (
           <div className="official-score">
-            <span>Final</span>
+            <span>{match.status === "finished" ? "Final" : "Preliminar"}</span>
             <strong>
               {match.home_score} - {match.away_score}
             </strong>
@@ -1269,7 +1273,7 @@ function PredictionRow({
           aria-label={`Goles de ${match.away_team}`}
         />
       </div>
-      {match.status === "finished" && (
+      {hasCompleteScore(match) && (
         <div className="points-breakdown">
           <span className="points">{score.points} pts</span>
           <small>{score.details.join(" ")}</small>
@@ -1440,7 +1444,7 @@ function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
               {resultPoints}) + {row.goalBonusHits} goles ({row.goalBonusHits}).
             </small>
             <small className="leaderboard-context">
-              Puntúan {row.scoredPredictions} de {row.predictions} pronósticos guardados con resultado oficial.
+              Puntúan {row.scoredPredictions} de {row.predictions} pronósticos guardados con marcador cargado.
               Desempate: exactos, luego resultados.
             </small>
           </div>
