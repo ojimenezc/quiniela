@@ -96,6 +96,12 @@ type GroupStandingRow = {
   points: number;
 };
 type MatchGroupData = { title: string; matches: Match[] };
+type HeadToHeadStats = {
+  points: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+};
 
 function isAdminParticipant(participant: Participant | null | undefined) {
   return Boolean(participant?.is_admin || participant?.name.trim().toLowerCase() === "admin");
@@ -113,6 +119,10 @@ function readScoreInput(value: string): ScoreInput {
 function isMatchLocked(match: Match, now = Date.now()) {
   const startsAt = new Date(match.starts_at).getTime();
   return match.status === "finished" || (Number.isFinite(startsAt) && startsAt <= now);
+}
+
+function hasCompleteScore(match: Match): match is Match & { home_score: number; away_score: number } {
+  return match.home_score !== null && match.away_score !== null;
 }
 
 function TeamName({ name }: { name: string }) {
@@ -609,6 +619,7 @@ export function App() {
 
 function buildGroupStandings(matches: Match[]) {
   const groups = new Map<string, Map<string, GroupStandingRow>>();
+  const matchesByGroup = new Map<string, Match[]>();
 
   function getRow(groupName: string, team: string) {
     const groupRows = groups.get(groupName) ?? new Map<string, GroupStandingRow>();
@@ -634,11 +645,12 @@ function buildGroupStandings(matches: Match[]) {
 
   for (const match of matches) {
     if (!match.group_name) continue;
+    matchesByGroup.set(match.group_name, [...(matchesByGroup.get(match.group_name) ?? []), match]);
 
     const home = getRow(match.group_name, match.home_team);
     const away = getRow(match.group_name, match.away_team);
 
-    if (match.status !== "finished" || match.home_score === null || match.away_score === null) continue;
+    if (!hasCompleteScore(match)) continue;
 
     home.played += 1;
     away.played += 1;
@@ -669,12 +681,7 @@ function buildGroupStandings(matches: Match[]) {
   return Array.from(groups.entries())
     .map(([groupName, rows]) => ({
       groupName,
-      rows: Array.from(rows.values()).sort((a, b) => {
-        if (b.points !== a.points) return b.points - a.points;
-        if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
-        if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
-        return a.team.localeCompare(b.team, "es");
-      }),
+      rows: rankGroupRows(Array.from(rows.values()), matchesByGroup.get(groupName) ?? []),
     }))
     .sort((a, b) => a.groupName.localeCompare(b.groupName, "es", { numeric: true }));
 }
@@ -686,14 +693,124 @@ function compareStandingRows(a: GroupStandingRow, b: GroupStandingRow) {
   return a.team.localeCompare(b.team, "es");
 }
 
-function getFinishedWinner(match: Match) {
-  if (match.status !== "finished" || match.home_score === null || match.away_score === null) return null;
+function compareThirdPlaceRows(a: GroupStandingRow, b: GroupStandingRow) {
+  return compareStandingRows(a, b);
+}
+
+function createEmptyHeadToHeadStats(): HeadToHeadStats {
+  return {
+    points: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+    goalDifference: 0,
+  };
+}
+
+function buildHeadToHeadStats(rows: GroupStandingRow[], matches: Match[]) {
+  const tiedTeams = new Set(rows.map((row) => row.team));
+  const stats = new Map(rows.map((row) => [row.team, createEmptyHeadToHeadStats()]));
+
+  for (const match of matches) {
+    if (!hasCompleteScore(match) || !tiedTeams.has(match.home_team) || !tiedTeams.has(match.away_team)) {
+      continue;
+    }
+
+    const home = stats.get(match.home_team);
+    const away = stats.get(match.away_team);
+    if (!home || !away) continue;
+
+    home.goalsFor += match.home_score;
+    home.goalsAgainst += match.away_score;
+    away.goalsFor += match.away_score;
+    away.goalsAgainst += match.home_score;
+
+    if (match.home_score > match.away_score) {
+      home.points += 3;
+    } else if (match.home_score < match.away_score) {
+      away.points += 3;
+    } else {
+      home.points += 1;
+      away.points += 1;
+    }
+
+    home.goalDifference = home.goalsFor - home.goalsAgainst;
+    away.goalDifference = away.goalsFor - away.goalsAgainst;
+  }
+
+  return stats;
+}
+
+function groupRowsByScore(rows: GroupStandingRow[], getScore: (row: GroupStandingRow) => number | string) {
+  const buckets = new Map<number | string, GroupStandingRow[]>();
+  for (const row of rows) {
+    const score = getScore(row);
+    buckets.set(score, [...(buckets.get(score) ?? []), row]);
+  }
+  return buckets;
+}
+
+function rankByNumericCriterion(
+  rows: GroupStandingRow[],
+  getScore: (row: GroupStandingRow) => number,
+  rankTie: (tiedRows: GroupStandingRow[]) => GroupStandingRow[],
+) {
+  const buckets = groupRowsByScore(rows, getScore);
+  return Array.from(buckets.entries())
+    .sort(([scoreA], [scoreB]) => Number(scoreB) - Number(scoreA))
+    .flatMap(([, tiedRows]) => (tiedRows.length === 1 ? tiedRows : rankTie(tiedRows)));
+}
+
+function rankByTeamName(rows: GroupStandingRow[]) {
+  // Fair play points and drawing of lots are FIFA criteria, but this app does not store card data
+  // or manual lottery outcomes. Keep the final fallback deterministic until that data exists.
+  return [...rows].sort((a, b) => a.team.localeCompare(b.team, "es"));
+}
+
+function rankHeadToHeadRows(rows: GroupStandingRow[], matches: Match[], criterionIndex = 0): GroupStandingRow[] {
+  if (rows.length <= 1) return rows;
+
+  const stats = buildHeadToHeadStats(rows, matches);
+  const criteria = [
+    (row: GroupStandingRow) => stats.get(row.team)?.points ?? 0,
+    (row: GroupStandingRow) => stats.get(row.team)?.goalDifference ?? 0,
+    (row: GroupStandingRow) => stats.get(row.team)?.goalsFor ?? 0,
+  ];
+
+  if (criterionIndex >= criteria.length) {
+    return rankByTeamName(rows);
+  }
+
+  return rankByNumericCriterion(rows, criteria[criterionIndex], (tiedRows) =>
+    rankHeadToHeadRows(tiedRows, matches, tiedRows.length === rows.length ? criterionIndex + 1 : 0),
+  );
+}
+
+function rankGroupRows(rows: GroupStandingRow[], matches: Match[], criterionIndex = 0): GroupStandingRow[] {
+  if (rows.length <= 1) return rows;
+
+  const criteria = [
+    (row: GroupStandingRow) => row.points,
+    (row: GroupStandingRow) => row.goalDifference,
+    (row: GroupStandingRow) => row.goalsFor,
+  ];
+
+  if (criterionIndex >= criteria.length) {
+    return rankHeadToHeadRows(rows, matches);
+  }
+
+  return rankByNumericCriterion(rows, criteria[criterionIndex], (tiedRows) =>
+    rankGroupRows(tiedRows, matches, criterionIndex + 1),
+  );
+}
+
+function getResolvedWinner(match: Match) {
+  if (!hasCompleteScore(match)) return null;
   if (match.home_score === match.away_score) return null;
   return match.home_score > match.away_score ? match.home_team : match.away_team;
 }
 
-function getFinishedLoser(match: Match) {
-  if (match.status !== "finished" || match.home_score === null || match.away_score === null) return null;
+function getResolvedLoser(match: Match) {
+  if (!hasCompleteScore(match)) return null;
   if (match.home_score === match.away_score) return null;
   return match.home_score > match.away_score ? match.away_team : match.home_team;
 }
@@ -709,9 +826,7 @@ function resolveAutomaticTeams(matches: Match[]) {
     groupCompletion.set(
       groupName,
       groupMatches.length > 0 &&
-        groupMatches.every(
-          (match) => match.status === "finished" && match.home_score !== null && match.away_score !== null,
-        ),
+        groupMatches.every((match) => hasCompleteScore(match)),
     );
   }
 
@@ -737,7 +852,7 @@ function resolveAutomaticTeams(matches: Match[]) {
       .filter((candidate): candidate is { groupName: string; row: GroupStandingRow } =>
         Boolean(candidate.row && !assignedThirdPlaceGroups.has(candidate.groupName)),
       )
-      .sort((a, b) => compareStandingRows(a.row, b.row));
+      .sort((a, b) => compareThirdPlaceRows(a.row, b.row));
 
     const selected = thirdPlaceCandidates[0];
     if (!selected) return teamName;
@@ -750,13 +865,13 @@ function resolveAutomaticTeams(matches: Match[]) {
     const winnerMatch = teamName.match(/^Ganador (\d+)$/);
     if (winnerMatch) {
       const sourceMatch = resolvedByNumber.get(Number(winnerMatch[1]));
-      return sourceMatch ? getFinishedWinner(sourceMatch) ?? teamName : teamName;
+      return sourceMatch ? getResolvedWinner(sourceMatch) ?? teamName : teamName;
     }
 
     const loserMatch = teamName.match(/^Perdedor (\d+)$/);
     if (loserMatch) {
       const sourceMatch = resolvedByNumber.get(Number(loserMatch[1]));
-      return sourceMatch ? getFinishedLoser(sourceMatch) ?? teamName : teamName;
+      return sourceMatch ? getResolvedLoser(sourceMatch) ?? teamName : teamName;
     }
 
     return resolveGroupPlaceholder(teamName);
