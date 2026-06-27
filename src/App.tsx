@@ -817,18 +817,8 @@ function getResolvedLoser(match: Match) {
 
 function resolveAutomaticTeams(matches: Match[]) {
   const standingsByGroup = new Map(buildGroupStandings(matches).map((group) => [group.groupName, group.rows]));
-  const groupCompletion = new Map<string, boolean>();
   const assignedThirdPlaceGroups = new Set<string>();
   const resolvedByNumber = new Map<number, Match>();
-
-  for (const groupName of standingsByGroup.keys()) {
-    const groupMatches = matches.filter((match) => match.group_name === groupName);
-    groupCompletion.set(
-      groupName,
-      groupMatches.length > 0 &&
-        groupMatches.every((match) => hasCompleteScore(match)),
-    );
-  }
 
   function resolveGroupPlaceholder(teamName: string) {
     const match = teamName.match(/^([123])\.º Grupo ([A-L](?:\/[A-L])*)$/);
@@ -839,11 +829,10 @@ function resolveAutomaticTeams(matches: Match[]) {
 
     if (rank === 1 || rank === 2) {
       const groupName = candidateGroups[0];
-      if (!groupCompletion.get(groupName)) return teamName;
       return standingsByGroup.get(groupName)?.[rank - 1]?.team ?? teamName;
     }
 
-    if (rank !== 3 || !candidateGroups.every((groupName) => groupCompletion.get(groupName))) {
+    if (rank !== 3) {
       return teamName;
     }
 
