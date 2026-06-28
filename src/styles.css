@@ -817,14 +817,57 @@ input[type="number"]::-webkit-outer-spin-button {
   justify-content: space-between;
 }
 
-.knockout-bracket h3,
-.bracket-column h4 {
+.knockout-bracket h3 {
   margin: 0;
 }
 
 .bracket-scroll {
   overflow-x: auto;
   padding: 4px 2px 8px;
+}
+
+.bracket-stage-headings {
+  display: grid;
+  grid-template-columns: repeat(4, 210px) 250px repeat(4, 210px);
+  gap: 22px;
+  min-width: 1966px;
+  margin-bottom: 10px;
+}
+
+.bracket-stage-headings span {
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #10251c;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.bracket-stage-headings span:nth-child(1) {
+  grid-column: 1 / 10;
+}
+
+.bracket-stage-headings span:nth-child(2) {
+  grid-column: 2 / 9;
+  grid-row: 2;
+}
+
+.bracket-stage-headings span:nth-child(3) {
+  grid-column: 3 / 8;
+  grid-row: 3;
+}
+
+.bracket-stage-headings span:nth-child(4) {
+  grid-column: 4 / 7;
+  grid-row: 4;
+}
+
+.bracket-stage-headings span:nth-child(5) {
+  grid-column: 5;
+  grid-row: 5;
 }
 
 .bracket-board {
@@ -837,20 +880,6 @@ input[type="number"]::-webkit-outer-spin-button {
 .bracket-column,
 .bracket-center {
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 10px;
-}
-
-.bracket-column h4,
-.bracket-center h4 {
-  padding: 9px 10px;
-  border-radius: 8px;
-  background: #10251c;
-  color: #ffffff;
-  font-size: 0.78rem;
-  letter-spacing: 0;
-  text-align: center;
-  text-transform: uppercase;
 }
 
 .bracket-lanes {

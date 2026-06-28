@@ -28,18 +28,19 @@ const PHASE_TABS = [
 ] as const;
 const BRACKET_SIDES = {
   left: [
-    { id: "left-round32", label: "16avos", matchNumbers: [74, 77, 73, 75, 83, 84, 81, 82] },
-    { id: "left-round16", label: "Octavos", matchNumbers: [89, 90, 93, 94] },
-    { id: "left-quarters", label: "Cuartos", matchNumbers: [97, 98] },
-    { id: "left-semis", label: "Semis", matchNumbers: [101] },
+    { id: "left-round32", matchNumbers: [74, 77, 73, 75, 83, 84, 81, 82] },
+    { id: "left-round16", matchNumbers: [89, 90, 93, 94] },
+    { id: "left-quarters", matchNumbers: [97, 98] },
+    { id: "left-semis", matchNumbers: [101] },
   ],
   right: [
-    { id: "right-semis", label: "Semis", matchNumbers: [102] },
-    { id: "right-quarters", label: "Cuartos", matchNumbers: [99, 100] },
-    { id: "right-round16", label: "Octavos", matchNumbers: [91, 92, 95, 96] },
-    { id: "right-round32", label: "16avos", matchNumbers: [76, 78, 79, 80, 86, 88, 85, 87] },
+    { id: "right-semis", matchNumbers: [102] },
+    { id: "right-quarters", matchNumbers: [99, 100] },
+    { id: "right-round16", matchNumbers: [91, 92, 95, 96] },
+    { id: "right-round32", matchNumbers: [76, 78, 79, 80, 86, 88, 85, 87] },
   ],
 } as const;
+const BRACKET_STAGE_LABELS = ["16avos", "Octavos", "Cuartos", "Semis", "Final"] as const;
 const FINAL_MATCH_NUMBER = 104;
 const THIRD_PLACE_MATCH_NUMBER = 103;
 const THIRD_PLACE_WINNER_SLOTS = ["A", "B", "D", "E", "G", "I", "K", "L"] as const;
@@ -1628,7 +1629,6 @@ function KnockoutBracket({ matches }: { matches: Match[] }) {
   function renderRound(round: (typeof leftRounds | typeof rightRounds)[number], side: "left" | "right") {
     return (
       <div className={`bracket-column bracket-column-${side}`} key={round.id}>
-        <h4>{round.label}</h4>
         <div className="bracket-lanes">
           {round.matches.map((match, index) => {
             const laneSpan = 16 / round.matchNumbers.length;
@@ -1653,10 +1653,14 @@ function KnockoutBracket({ matches }: { matches: Match[] }) {
         <h3>Camino a la final</h3>
       </header>
       <div className="bracket-scroll">
+        <div className="bracket-stage-headings">
+          {BRACKET_STAGE_LABELS.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
+        </div>
         <div className="bracket-board">
           {leftRounds.map((round) => renderRound(round, "left"))}
           <div className="bracket-center">
-            <h4>Final</h4>
             <div className="bracket-lanes bracket-lanes-center">
               {finalMatch && (
                 <div className="bracket-slot bracket-slot-center" style={{ gridRow: "5 / span 6" }}>
