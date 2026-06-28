@@ -1649,9 +1649,6 @@ function KnockoutBracket({ matches }: { matches: Match[] }) {
 
   return (
     <section className="knockout-bracket" aria-label="Llaves de eliminación">
-      <header>
-        <h3>Camino a la final</h3>
-      </header>
       <div className="bracket-scroll">
         <div className="bracket-stage-headings">
           {BRACKET_STAGE_LABELS.map((label) => (
