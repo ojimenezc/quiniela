@@ -876,7 +876,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .bracket-linear-column:not(:first-child) .bracket-linear-slot {
-  transform: translateY(10px);
+  transform: translateY(34px);
 }
 
 .bracket-stage-headings {
@@ -1377,7 +1377,7 @@ form button {
   }
 
   .bracket-linear-column:not(:first-child) .bracket-linear-slot {
-    transform: translateY(7px);
+    transform: translateY(30px);
   }
 
   .bracket-stage-headings {
