@@ -627,9 +627,11 @@ export function App() {
                 type="button"
                 className={activeMainTab === "bracket" ? "active" : ""}
                 onClick={() => setActiveMainTab("bracket")}
+                aria-label="Camino a la final"
+                title="Camino a la final"
               >
                 <Trophy size={18} />
-                Camino a la final
+                Camino
               </button>
             </div>
             {activeMainTab === "predictions" && (
