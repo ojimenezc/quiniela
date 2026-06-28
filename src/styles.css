@@ -1343,28 +1343,7 @@ form button {
 
   .bracket-slot::before,
   .bracket-slot::after {
-    width: 8px;
-    border-top-color: #aeb9c9;
-  }
-
-  .bracket-slot::before {
-    left: -8px;
-  }
-
-  .bracket-slot::after {
-    right: -8px;
-  }
-
-  .bracket-slot-right::before,
-  .bracket-slot-center::before {
-    width: 14px;
-    left: -14px;
-  }
-
-  .bracket-slot-left::after,
-  .bracket-slot-center::after {
-    width: 14px;
-    right: -14px;
+    display: none;
   }
 
   .bracket-match {
