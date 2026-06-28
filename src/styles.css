@@ -1371,7 +1371,7 @@ form button {
     min-height: 48px;
     gap: 2px;
     padding: 5px 7px;
-    border-color: #bdd0c6;
+    border-color: transparent;
     background: linear-gradient(180deg, #ffffff 0%, #f8fbf9 100%);
     box-shadow:
       0 6px 14px rgba(16, 37, 28, 0.08),
@@ -1379,7 +1379,7 @@ form button {
   }
 
   .bracket-match.featured {
-    border-color: rgba(226, 60, 47, 0.36);
+    border-color: transparent;
     background:
       linear-gradient(180deg, rgba(255, 248, 224, 0.94) 0%, rgba(255, 255, 255, 0.98) 100%),
       #ffffff;
@@ -1392,8 +1392,6 @@ form button {
     color: #315242;
     font-size: 0.58rem;
     line-height: 1;
-    text-decoration: underline;
-    text-underline-offset: 2px;
   }
 
   .bracket-team {
