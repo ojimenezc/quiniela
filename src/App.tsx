@@ -650,7 +650,14 @@ export function App() {
                   <BarChart3 size={20} />
                   <h2>Grupos y posiciones</h2>
                 </div>
-                {loading ? <p>Cargando...</p> : <GroupStandings groups={groupStandings} />}
+                {loading ? (
+                  <p>Cargando...</p>
+                ) : (
+                  <>
+                    <GroupStandings groups={groupStandings} />
+                    <KnockoutBracket matches={resolvedMatches} />
+                  </>
+                )}
               </section>
             )}
           </section>
@@ -852,8 +859,8 @@ function rankByNumericCriterion(
 }
 
 function rankByTeamName(rows: GroupStandingRow[]) {
-  // Fair play points and drawing of lots are FIFA criteria, but this app does not store card data
-  // or manual lottery outcomes. Keep the final fallback deterministic until that data exists.
+  // FIFA 2026 next uses team conduct and FIFA rankings. This app does not store those values yet,
+  // so keep the final fallback deterministic until that data exists.
   return [...rows].sort((a, b) => a.team.localeCompare(b.team, "es"));
 }
 
@@ -868,7 +875,7 @@ function rankHeadToHeadRows(rows: GroupStandingRow[], matches: Match[], criterio
   ];
 
   if (criterionIndex >= criteria.length) {
-    return rankByTeamName(rows);
+    return rankByOverallGroupRows(rows);
   }
 
   return rankByNumericCriterion(rows, criteria[criterionIndex], (tiedRows) =>
@@ -876,21 +883,28 @@ function rankHeadToHeadRows(rows: GroupStandingRow[], matches: Match[], criterio
   );
 }
 
-function rankGroupRows(rows: GroupStandingRow[], matches: Match[], criterionIndex = 0): GroupStandingRow[] {
+function rankByOverallGroupRows(rows: GroupStandingRow[], criterionIndex = 0): GroupStandingRow[] {
   if (rows.length <= 1) return rows;
 
   const criteria = [
-    (row: GroupStandingRow) => row.points,
     (row: GroupStandingRow) => row.goalDifference,
     (row: GroupStandingRow) => row.goalsFor,
   ];
 
   if (criterionIndex >= criteria.length) {
-    return rankHeadToHeadRows(rows, matches);
+    return rankByTeamName(rows);
   }
 
   return rankByNumericCriterion(rows, criteria[criterionIndex], (tiedRows) =>
-    rankGroupRows(tiedRows, matches, criterionIndex + 1),
+    rankByOverallGroupRows(tiedRows, criterionIndex + 1),
+  );
+}
+
+function rankGroupRows(rows: GroupStandingRow[], matches: Match[]) {
+  if (rows.length <= 1) return rows;
+
+  return rankByNumericCriterion(rows, (row) => row.points, (tiedRows) =>
+    rankHeadToHeadRows(tiedRows, matches),
   );
 }
 
@@ -1550,6 +1564,56 @@ function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
         );
       })}
     </div>
+  );
+}
+
+function KnockoutBracket({ matches }: { matches: Match[] }) {
+  const stages = PHASE_TABS.filter((phase) => phase.id !== "groups")
+    .map((phase) => ({
+      ...phase,
+      matches: matches
+        .filter((match) => getPhaseTab(match.stage) === phase.id)
+        .sort((a, b) => {
+          const matchNumberA = a.match_number ?? Number.MAX_SAFE_INTEGER;
+          const matchNumberB = b.match_number ?? Number.MAX_SAFE_INTEGER;
+          if (matchNumberA !== matchNumberB) return matchNumberA - matchNumberB;
+          return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+        }),
+    }))
+    .filter((stage) => stage.matches.length > 0);
+
+  if (stages.length === 0) return null;
+
+  return (
+    <section className="knockout-bracket" aria-label="Llaves de eliminación">
+      <header>
+        <h3>Llaves</h3>
+      </header>
+      <div className="bracket-scroll">
+        <div className="bracket-columns">
+          {stages.map((stage) => (
+            <div className="bracket-column" key={stage.id}>
+              <h4>{stage.label}</h4>
+              <div className="bracket-matches">
+                {stage.matches.map((match) => (
+                  <article className="bracket-match" key={match.id}>
+                    <span>{match.match_number ? `P${match.match_number}` : match.stage}</span>
+                    <div className="bracket-team">
+                      <TeamName name={match.home_team} />
+                      {hasCompleteScore(match) && <b>{match.home_score}</b>}
+                    </div>
+                    <div className="bracket-team">
+                      <TeamName name={match.away_team} />
+                      {hasCompleteScore(match) && <b>{match.away_score}</b>}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

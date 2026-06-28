@@ -804,6 +804,83 @@ input[type="number"]::-webkit-outer-spin-button {
   color: #e23c2f;
 }
 
+.knockout-bracket {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.knockout-bracket > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.knockout-bracket h3,
+.bracket-column h4 {
+  margin: 0;
+}
+
+.bracket-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.bracket-columns {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(188px, 1fr));
+  gap: 12px;
+  min-width: 980px;
+}
+
+.bracket-column {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.bracket-column h4 {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #10251c;
+  color: #ffffff;
+  font-size: 0.82rem;
+}
+
+.bracket-matches {
+  display: grid;
+  gap: 8px;
+}
+
+.bracket-match {
+  display: grid;
+  gap: 6px;
+  min-height: 92px;
+  padding: 10px;
+  border: 1px solid #deebe3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.bracket-match > span {
+  color: #61736a;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bracket-team {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.bracket-team b {
+  color: #e23c2f;
+}
+
 .notice {
   margin-bottom: 16px;
   padding: 12px 14px;
