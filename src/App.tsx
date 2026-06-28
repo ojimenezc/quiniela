@@ -26,12 +26,20 @@ const PHASE_TABS = [
   { id: "semis", label: "Semis" },
   { id: "finals", label: "Finales" },
 ] as const;
-const BRACKET_ROUNDS = [
-  { id: "round32", label: "16avos", matchNumbers: [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87] },
-  { id: "round16", label: "Octavos", matchNumbers: [89, 90, 93, 94, 91, 92, 95, 96] },
-  { id: "quarters", label: "Cuartos", matchNumbers: [97, 98, 99, 100] },
-  { id: "semis", label: "Semis", matchNumbers: [101, 102] },
-] as const;
+const BRACKET_SIDES = {
+  left: [
+    { id: "left-round32", label: "16avos", matchNumbers: [74, 77, 73, 75, 83, 84, 81, 82] },
+    { id: "left-round16", label: "Octavos", matchNumbers: [89, 90, 93, 94] },
+    { id: "left-quarters", label: "Cuartos", matchNumbers: [97, 98] },
+    { id: "left-semis", label: "Semis", matchNumbers: [101] },
+  ],
+  right: [
+    { id: "right-semis", label: "Semis", matchNumbers: [102] },
+    { id: "right-quarters", label: "Cuartos", matchNumbers: [99, 100] },
+    { id: "right-round16", label: "Octavos", matchNumbers: [91, 92, 95, 96] },
+    { id: "right-round32", label: "16avos", matchNumbers: [76, 78, 79, 80, 86, 88, 85, 87] },
+  ],
+} as const;
 const FINAL_MATCH_NUMBER = 104;
 const THIRD_PLACE_MATCH_NUMBER = 103;
 const THIRD_PLACE_WINNER_SLOTS = ["A", "B", "D", "E", "G", "I", "K", "L"] as const;
@@ -662,8 +670,8 @@ export function App() {
                   <p>Cargando...</p>
                 ) : (
                   <>
-                    <GroupStandings groups={groupStandings} />
                     <KnockoutBracket matches={resolvedMatches} />
+                    <GroupStandings groups={groupStandings} />
                   </>
                 )}
               </section>
@@ -1581,18 +1589,48 @@ function KnockoutBracket({ matches }: { matches: Match[] }) {
       .filter((match): match is Match & { match_number: number } => match.match_number !== null)
       .map((match) => [match.match_number, match]),
   );
-  const rounds = BRACKET_ROUNDS.map((round) => ({
-    ...round,
-    matches: round.matchNumbers.reduce<Match[]>((roundMatches, matchNumber) => {
-      const match = matchesByNumber.get(matchNumber);
-      if (match) roundMatches.push(match);
-      return roundMatches;
-    }, []),
-  }));
+  const buildSide = (side: typeof BRACKET_SIDES.left | typeof BRACKET_SIDES.right) =>
+    side.map((round) => ({
+      ...round,
+      matches: round.matchNumbers.reduce<Match[]>((roundMatches, matchNumber) => {
+        const match = matchesByNumber.get(matchNumber);
+        if (match) roundMatches.push(match);
+        return roundMatches;
+      }, []),
+    }));
+  const leftRounds = buildSide(BRACKET_SIDES.left);
+  const rightRounds = buildSide(BRACKET_SIDES.right);
   const finalMatch = matchesByNumber.get(FINAL_MATCH_NUMBER);
   const thirdPlaceMatch = matchesByNumber.get(THIRD_PLACE_MATCH_NUMBER);
+  const hasBracketMatches =
+    leftRounds.some((round) => round.matches.length > 0) ||
+    rightRounds.some((round) => round.matches.length > 0) ||
+    finalMatch ||
+    thirdPlaceMatch;
 
-  if (rounds.every((round) => round.matches.length === 0) && !finalMatch && !thirdPlaceMatch) return null;
+  if (!hasBracketMatches) return null;
+
+  function renderRound(round: (typeof leftRounds | typeof rightRounds)[number], side: "left" | "right") {
+    return (
+      <div className={`bracket-column bracket-column-${side}`} key={round.id}>
+        <h4>{round.label}</h4>
+        <div className="bracket-lanes">
+          {round.matches.map((match, index) => {
+            const laneSpan = 16 / round.matchNumbers.length;
+            return (
+              <div
+                className={`bracket-slot bracket-slot-${side}`}
+                key={match.id}
+                style={{ gridRow: `${index * laneSpan + 1} / span ${laneSpan}` }}
+              >
+                <BracketMatchCard match={match} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="knockout-bracket" aria-label="Llaves de eliminación">
@@ -1600,41 +1638,24 @@ function KnockoutBracket({ matches }: { matches: Match[] }) {
         <h3>Camino a la final</h3>
       </header>
       <div className="bracket-scroll">
-        <div className="bracket-columns">
-          {rounds.map((round) => (
-            <div className="bracket-column" key={round.id}>
-              <h4>{round.label}</h4>
-              <div className="bracket-lanes">
-                {round.matches.map((match, index) => {
-                  const laneSpan = 16 / round.matchNumbers.length;
-                  return (
-                    <div
-                      className="bracket-slot"
-                      key={match.id}
-                      style={{ gridRow: `${index * laneSpan + 1} / span ${laneSpan}` }}
-                    >
-                      <BracketMatchCard match={match} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          <div className="bracket-column bracket-column-final">
+        <div className="bracket-board">
+          {leftRounds.map((round) => renderRound(round, "left"))}
+          <div className="bracket-center">
             <h4>Final</h4>
-            <div className="bracket-lanes">
+            <div className="bracket-lanes bracket-lanes-center">
               {finalMatch && (
-                <div className="bracket-slot bracket-slot-final" style={{ gridRow: "1 / span 11" }}>
+                <div className="bracket-slot bracket-slot-center" style={{ gridRow: "5 / span 6" }}>
                   <BracketMatchCard match={finalMatch} featured />
                 </div>
               )}
               {thirdPlaceMatch && (
-                <div className="bracket-slot bracket-slot-final bracket-slot-third" style={{ gridRow: "12 / span 5" }}>
+                <div className="bracket-slot bracket-slot-center bracket-slot-third" style={{ gridRow: "12 / span 4" }}>
                   <BracketMatchCard match={thirdPlaceMatch} />
                 </div>
               )}
             </div>
           </div>
+          {rightRounds.map((round) => renderRound(round, "right"))}
         </div>
       </div>
     </section>

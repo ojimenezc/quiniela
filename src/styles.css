@@ -808,6 +808,7 @@ input[type="number"]::-webkit-outer-spin-button {
   display: grid;
   gap: 12px;
   margin-top: 22px;
+  margin-bottom: 18px;
 }
 
 .knockout-bracket > header {
@@ -826,20 +827,22 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 4px 2px 8px;
 }
 
-.bracket-columns {
+.bracket-board {
   display: grid;
-  grid-template-columns: repeat(5, 216px);
+  grid-template-columns: repeat(4, 210px) 250px repeat(4, 210px);
   gap: 22px;
-  min-width: 1170px;
+  min-width: 1966px;
 }
 
-.bracket-column {
+.bracket-column,
+.bracket-center {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 10px;
 }
 
-.bracket-column h4 {
+.bracket-column h4,
+.bracket-center h4 {
   padding: 9px 10px;
   border-radius: 8px;
   background: #10251c;
@@ -853,6 +856,10 @@ input[type="number"]::-webkit-outer-spin-button {
 .bracket-lanes {
   display: grid;
   grid-template-rows: repeat(16, minmax(64px, 1fr));
+  min-height: 1120px;
+}
+
+.bracket-lanes-center {
   min-height: 1120px;
 }
 
@@ -880,10 +887,23 @@ input[type="number"]::-webkit-outer-spin-button {
   right: -12px;
 }
 
-.bracket-column:first-child .bracket-slot::before,
-.bracket-column-final .bracket-slot::after,
-.bracket-slot-third::before {
+.bracket-column:first-child .bracket-slot-left::before,
+.bracket-column:last-child .bracket-slot-right::after,
+.bracket-slot-third::before,
+.bracket-slot-third::after {
   display: none;
+}
+
+.bracket-slot-right::before,
+.bracket-slot-center::before {
+  width: 22px;
+  left: -22px;
+}
+
+.bracket-slot-left::after,
+.bracket-slot-center::after {
+  width: 22px;
+  right: -22px;
 }
 
 .bracket-match {
