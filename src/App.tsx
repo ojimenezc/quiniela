@@ -1621,9 +1621,14 @@ function KnockoutBracket({ matches }: { matches: Match[] }) {
           <section className="bracket-linear-column" key={round.id}>
             <h3>{round.label}</h3>
             <div className="bracket-linear-matches">
-              {round.matches.map((match) => (
-                <BracketMatchCard match={match} featured={match.match_number === FINAL_MATCH_NUMBER} key={match.id} />
-              ))}
+              {round.matches.map((match, index) => {
+                const laneSpan = 16 / round.matchNumbers.length;
+                return (
+                  <div className="bracket-linear-slot" key={match.id} style={{ gridRow: `${index * laneSpan + 1} / span ${laneSpan}` }}>
+                    <BracketMatchCard match={match} featured={match.match_number === FINAL_MATCH_NUMBER} />
+                  </div>
+                );
+              })}
             </div>
           </section>
         ))}

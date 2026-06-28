@@ -865,7 +865,14 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .bracket-linear-matches {
   display: grid;
-  gap: 10px;
+  grid-template-rows: repeat(16, minmax(66px, 1fr));
+  min-height: 1060px;
+}
+
+.bracket-linear-slot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .bracket-stage-headings {
@@ -1398,7 +1405,14 @@ form button {
 
   .bracket-linear-matches {
     display: grid;
-    gap: 8px;
+    grid-template-rows: repeat(16, minmax(52px, 1fr));
+    min-height: 832px;
+  }
+
+  .bracket-linear-slot {
+    display: flex;
+    align-items: center;
+    min-width: 0;
   }
 
   .bracket-stage-headings {
