@@ -26,6 +26,14 @@ const PHASE_TABS = [
   { id: "semis", label: "Semis" },
   { id: "finals", label: "Finales" },
 ] as const;
+const BRACKET_ROUNDS = [
+  { id: "round32", label: "16avos", matchNumbers: [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87] },
+  { id: "round16", label: "Octavos", matchNumbers: [89, 90, 93, 94, 91, 92, 95, 96] },
+  { id: "quarters", label: "Cuartos", matchNumbers: [97, 98, 99, 100] },
+  { id: "semis", label: "Semis", matchNumbers: [101, 102] },
+] as const;
+const FINAL_MATCH_NUMBER = 104;
+const THIRD_PLACE_MATCH_NUMBER = 103;
 const THIRD_PLACE_WINNER_SLOTS = ["A", "B", "D", "E", "G", "I", "K", "L"] as const;
 type ThirdPlaceWinnerSlot = (typeof THIRD_PLACE_WINNER_SLOTS)[number];
 const THIRD_PLACE_SLOT_BY_CANDIDATES = new Map<string, ThirdPlaceWinnerSlot>([
@@ -1568,52 +1576,87 @@ function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
 }
 
 function KnockoutBracket({ matches }: { matches: Match[] }) {
-  const stages = PHASE_TABS.filter((phase) => phase.id !== "groups")
-    .map((phase) => ({
-      ...phase,
-      matches: matches
-        .filter((match) => getPhaseTab(match.stage) === phase.id)
-        .sort((a, b) => {
-          const matchNumberA = a.match_number ?? Number.MAX_SAFE_INTEGER;
-          const matchNumberB = b.match_number ?? Number.MAX_SAFE_INTEGER;
-          if (matchNumberA !== matchNumberB) return matchNumberA - matchNumberB;
-          return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
-        }),
-    }))
-    .filter((stage) => stage.matches.length > 0);
+  const matchesByNumber = new Map(
+    matches
+      .filter((match): match is Match & { match_number: number } => match.match_number !== null)
+      .map((match) => [match.match_number, match]),
+  );
+  const rounds = BRACKET_ROUNDS.map((round) => ({
+    ...round,
+    matches: round.matchNumbers.reduce<Match[]>((roundMatches, matchNumber) => {
+      const match = matchesByNumber.get(matchNumber);
+      if (match) roundMatches.push(match);
+      return roundMatches;
+    }, []),
+  }));
+  const finalMatch = matchesByNumber.get(FINAL_MATCH_NUMBER);
+  const thirdPlaceMatch = matchesByNumber.get(THIRD_PLACE_MATCH_NUMBER);
 
-  if (stages.length === 0) return null;
+  if (rounds.every((round) => round.matches.length === 0) && !finalMatch && !thirdPlaceMatch) return null;
 
   return (
     <section className="knockout-bracket" aria-label="Llaves de eliminación">
       <header>
-        <h3>Llaves</h3>
+        <h3>Camino a la final</h3>
       </header>
       <div className="bracket-scroll">
         <div className="bracket-columns">
-          {stages.map((stage) => (
-            <div className="bracket-column" key={stage.id}>
-              <h4>{stage.label}</h4>
-              <div className="bracket-matches">
-                {stage.matches.map((match) => (
-                  <article className="bracket-match" key={match.id}>
-                    <span>{match.match_number ? `P${match.match_number}` : match.stage}</span>
-                    <div className="bracket-team">
-                      <TeamName name={match.home_team} />
-                      {hasCompleteScore(match) && <b>{match.home_score}</b>}
+          {rounds.map((round) => (
+            <div className="bracket-column" key={round.id}>
+              <h4>{round.label}</h4>
+              <div className="bracket-lanes">
+                {round.matches.map((match, index) => {
+                  const laneSpan = 16 / round.matchNumbers.length;
+                  return (
+                    <div
+                      className="bracket-slot"
+                      key={match.id}
+                      style={{ gridRow: `${index * laneSpan + 1} / span ${laneSpan}` }}
+                    >
+                      <BracketMatchCard match={match} />
                     </div>
-                    <div className="bracket-team">
-                      <TeamName name={match.away_team} />
-                      {hasCompleteScore(match) && <b>{match.away_score}</b>}
-                    </div>
-                  </article>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
+          <div className="bracket-column bracket-column-final">
+            <h4>Final</h4>
+            <div className="bracket-lanes">
+              {finalMatch && (
+                <div className="bracket-slot bracket-slot-final" style={{ gridRow: "1 / span 11" }}>
+                  <BracketMatchCard match={finalMatch} featured />
+                </div>
+              )}
+              {thirdPlaceMatch && (
+                <div className="bracket-slot bracket-slot-final bracket-slot-third" style={{ gridRow: "12 / span 5" }}>
+                  <BracketMatchCard match={thirdPlaceMatch} />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function BracketMatchCard({ match, featured = false }: { match: Match; featured?: boolean }) {
+  const winner = getResolvedWinner(match);
+  const hasScore = hasCompleteScore(match);
+
+  return (
+    <article className={featured ? "bracket-match featured" : "bracket-match"}>
+      <span>{match.match_number ? `P${match.match_number}` : match.stage}</span>
+      <div className={winner === match.home_team ? "bracket-team winner" : "bracket-team"}>
+        <TeamName name={match.home_team} />
+        {hasScore && <b>{match.home_score}</b>}
+      </div>
+      <div className={winner === match.away_team ? "bracket-team winner" : "bracket-team"}>
+        <TeamName name={match.away_team} />
+        {hasScore && <b>{match.away_score}</b>}
+      </div>
+    </article>
   );
 }
 

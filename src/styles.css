@@ -806,8 +806,8 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .knockout-bracket {
   display: grid;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 22px;
 }
 
 .knockout-bracket > header {
@@ -823,43 +823,88 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .bracket-scroll {
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 4px 2px 8px;
 }
 
 .bracket-columns {
   display: grid;
-  grid-template-columns: repeat(5, minmax(188px, 1fr));
-  gap: 12px;
-  min-width: 980px;
+  grid-template-columns: repeat(5, 216px);
+  gap: 22px;
+  min-width: 1170px;
 }
 
 .bracket-column {
   display: grid;
-  align-content: start;
+  grid-template-rows: auto 1fr;
   gap: 10px;
 }
 
 .bracket-column h4 {
-  padding: 8px 10px;
+  padding: 9px 10px;
   border-radius: 8px;
   background: #10251c;
   color: #ffffff;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: uppercase;
 }
 
-.bracket-matches {
+.bracket-lanes {
   display: grid;
-  gap: 8px;
+  grid-template-rows: repeat(16, minmax(64px, 1fr));
+  min-height: 1120px;
+}
+
+.bracket-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bracket-slot::before,
+.bracket-slot::after {
+  position: absolute;
+  top: 50%;
+  z-index: 0;
+  width: 12px;
+  border-top: 2px solid #bed2c6;
+  content: "";
+}
+
+.bracket-slot::before {
+  left: -12px;
+}
+
+.bracket-slot::after {
+  right: -12px;
+}
+
+.bracket-column:first-child .bracket-slot::before,
+.bracket-column-final .bracket-slot::after,
+.bracket-slot-third::before {
+  display: none;
 }
 
 .bracket-match {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 6px;
-  min-height: 92px;
+  width: 100%;
+  min-height: 74px;
   padding: 10px;
   border: 1px solid #deebe3;
   border-radius: 8px;
   background: #ffffff;
+  box-shadow: 0 8px 18px rgba(16, 37, 28, 0.07);
+}
+
+.bracket-match.featured {
+  border-color: rgba(226, 60, 47, 0.32);
+  background:
+    linear-gradient(135deg, rgba(255, 228, 92, 0.22), rgba(255, 255, 255, 0)),
+    #ffffff;
 }
 
 .bracket-match > span {
@@ -875,10 +920,24 @@ input[type="number"]::-webkit-outer-spin-button {
   gap: 6px;
   align-items: center;
   min-width: 0;
+  color: #61736a;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
-.bracket-team b {
+.bracket-team.winner {
+  color: #10251c;
+  font-weight: 900;
+}
+
+.bracket-team b,
+.bracket-team.winner b {
   color: #e23c2f;
+  font-size: 0.9rem;
+}
+
+.bracket-team .team-name {
+  overflow-wrap: anywhere;
 }
 
 .notice {
