@@ -1307,68 +1307,69 @@ form button {
   }
 
   .bracket-board {
-    grid-template-columns: repeat(4, 248px) 268px repeat(4, 248px);
-    gap: 26px;
-    min-width: 2460px;
-    padding: 4px 8px 18px;
+    grid-template-columns: repeat(4, 190px) 210px repeat(4, 190px);
+    gap: 18px;
+    min-width: 1874px;
+    padding: 4px 6px 16px;
   }
 
   .bracket-lanes,
   .bracket-lanes-center {
-    grid-template-rows: repeat(16, minmax(74px, 1fr));
-    min-height: 1220px;
+    grid-template-rows: repeat(16, minmax(58px, 1fr));
+    min-height: 930px;
   }
 
   .bracket-slot::before,
   .bracket-slot::after {
-    width: 14px;
+    width: 10px;
     border-top-color: #aeb9c9;
   }
 
   .bracket-slot::before {
-    left: -14px;
+    left: -10px;
   }
 
   .bracket-slot::after {
-    right: -14px;
+    right: -10px;
   }
 
   .bracket-slot-right::before,
   .bracket-slot-center::before {
-    width: 26px;
-    left: -26px;
+    width: 18px;
+    left: -18px;
   }
 
   .bracket-slot-left::after,
   .bracket-slot-center::after {
-    width: 26px;
-    right: -26px;
+    width: 18px;
+    right: -18px;
   }
 
   .bracket-match {
-    min-height: 86px;
-    padding: 12px 14px;
+    min-height: 64px;
+    gap: 4px;
+    padding: 8px 10px;
     border-color: #aeb9c9;
     box-shadow: none;
   }
 
   .bracket-match > span {
     color: #10251c;
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     text-decoration: underline;
     text-underline-offset: 2px;
   }
 
   .bracket-team {
-    gap: 10px;
+    gap: 6px;
     color: #10251c;
-    font-size: 1rem;
-    line-height: 1.2;
+    font-size: 0.86rem;
+    line-height: 1.12;
   }
 
   .bracket-team b,
   .bracket-team.winner b {
-    font-size: 1rem;
+    font-size: 0.86rem;
   }
 }
 
