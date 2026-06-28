@@ -185,7 +185,7 @@ const TEAM_DISPLAY_NAMES: Record<string, string> = {
 };
 
 type PhaseTab = (typeof PHASE_TABS)[number]["id"];
-type MainTab = "predictions" | "standings";
+type MainTab = "predictions" | "standings" | "bracket";
 type ScoreInput = number | "";
 type GroupStandingRow = {
   team: string;
@@ -622,8 +622,16 @@ export function App() {
                 <BarChart3 size={18} />
                 Grupos
               </button>
+              <button
+                type="button"
+                className={activeMainTab === "bracket" ? "active" : ""}
+                onClick={() => setActiveMainTab("bracket")}
+              >
+                <Trophy size={18} />
+                Camino a la final
+              </button>
             </div>
-            {activeMainTab === "predictions" ? (
+            {activeMainTab === "predictions" && (
               <section>
                 <div className="section-heading">
                   <Trophy size={20} />
@@ -660,19 +668,26 @@ export function App() {
                   </>
                 )}
               </section>
-            ) : (
+            )}
+            {activeMainTab === "standings" && (
               <section>
                 <div className="section-heading">
                   <BarChart3 size={20} />
                   <h2>Grupos y posiciones</h2>
                 </div>
+                {loading ? <p>Cargando...</p> : <GroupStandings groups={groupStandings} />}
+              </section>
+            )}
+            {activeMainTab === "bracket" && (
+              <section>
+                <div className="section-heading">
+                  <Trophy size={20} />
+                  <h2>Camino a la final</h2>
+                </div>
                 {loading ? (
                   <p>Cargando...</p>
                 ) : (
-                  <>
-                    <KnockoutBracket matches={resolvedMatches} />
-                    <GroupStandings groups={groupStandings} />
-                  </>
+                  <KnockoutBracket matches={resolvedMatches} />
                 )}
               </section>
             )}
