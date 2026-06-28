@@ -631,7 +631,7 @@ export function App() {
                 title="Camino a la final"
               >
                 <Trophy size={18} />
-                Camino
+                Cruces
               </button>
             </div>
             {activeMainTab === "predictions" && (
