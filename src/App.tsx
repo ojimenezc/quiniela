@@ -26,23 +26,18 @@ const PHASE_TABS = [
   { id: "semis", label: "Semis" },
   { id: "finals", label: "Finales" },
 ] as const;
-const BRACKET_SIDES = {
-  left: [
-    { id: "left-round32", matchNumbers: [74, 77, 73, 75, 83, 84, 81, 82] },
-    { id: "left-round16", matchNumbers: [89, 90, 93, 94] },
-    { id: "left-quarters", matchNumbers: [97, 98] },
-    { id: "left-semis", matchNumbers: [101] },
-  ],
-  right: [
-    { id: "right-semis", matchNumbers: [102] },
-    { id: "right-quarters", matchNumbers: [99, 100] },
-    { id: "right-round16", matchNumbers: [91, 92, 95, 96] },
-    { id: "right-round32", matchNumbers: [76, 78, 79, 80, 86, 88, 85, 87] },
-  ],
-} as const;
-const BRACKET_STAGE_LABELS = ["16avos", "Octavos", "Cuartos", "Semis", "Final"] as const;
+const BRACKET_LINEAR_ROUNDS = [
+  {
+    id: "linear-round32",
+    label: "16avos",
+    matchNumbers: [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87],
+  },
+  { id: "linear-round16", label: "Octavos", matchNumbers: [89, 90, 93, 94, 91, 92, 95, 96] },
+  { id: "linear-quarters", label: "Cuartos", matchNumbers: [97, 98, 99, 100] },
+  { id: "linear-semis", label: "Semis", matchNumbers: [101, 102] },
+  { id: "linear-final", label: "Final", matchNumbers: [104] },
+] as const;
 const FINAL_MATCH_NUMBER = 104;
-const THIRD_PLACE_MATCH_NUMBER = 103;
 const THIRD_PLACE_WINNER_SLOTS = ["A", "B", "D", "E", "G", "I", "K", "L"] as const;
 type ThirdPlaceWinnerSlot = (typeof THIRD_PLACE_WINNER_SLOTS)[number];
 const THIRD_PLACE_SLOT_BY_CANDIDATES = new Map<string, ThirdPlaceWinnerSlot>([
@@ -1607,74 +1602,31 @@ function KnockoutBracket({ matches }: { matches: Match[] }) {
       .filter((match): match is Match & { match_number: number } => match.match_number !== null)
       .map((match) => [match.match_number, match]),
   );
-  const buildSide = (side: typeof BRACKET_SIDES.left | typeof BRACKET_SIDES.right) =>
-    side.map((round) => ({
-      ...round,
-      matches: round.matchNumbers.reduce<Match[]>((roundMatches, matchNumber) => {
-        const match = matchesByNumber.get(matchNumber);
-        if (match) roundMatches.push(match);
-        return roundMatches;
-      }, []),
-    }));
-  const leftRounds = buildSide(BRACKET_SIDES.left);
-  const rightRounds = buildSide(BRACKET_SIDES.right);
-  const finalMatch = matchesByNumber.get(FINAL_MATCH_NUMBER);
-  const thirdPlaceMatch = matchesByNumber.get(THIRD_PLACE_MATCH_NUMBER);
-  const hasBracketMatches =
-    leftRounds.some((round) => round.matches.length > 0) ||
-    rightRounds.some((round) => round.matches.length > 0) ||
-    finalMatch ||
-    thirdPlaceMatch;
+  const linearRounds = BRACKET_LINEAR_ROUNDS.map((round) => ({
+    ...round,
+    matches: round.matchNumbers.reduce<Match[]>((roundMatches, matchNumber) => {
+      const match = matchesByNumber.get(matchNumber);
+      if (match) roundMatches.push(match);
+      return roundMatches;
+    }, []),
+  }));
+  const hasBracketMatches = linearRounds.some((round) => round.matches.length > 0);
 
   if (!hasBracketMatches) return null;
 
-  function renderRound(round: (typeof leftRounds | typeof rightRounds)[number], side: "left" | "right") {
-    return (
-      <div className={`bracket-column bracket-column-${side}`} key={round.id}>
-        <div className="bracket-lanes">
-          {round.matches.map((match, index) => {
-            const laneSpan = 16 / round.matchNumbers.length;
-            return (
-              <div
-                className={`bracket-slot bracket-slot-${side}`}
-                key={match.id}
-                style={{ gridRow: `${index * laneSpan + 1} / span ${laneSpan}` }}
-              >
-                <BracketMatchCard match={match} />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <section className="knockout-bracket" aria-label="Llaves de eliminación">
-      <div className="bracket-scroll">
-        <div className="bracket-stage-headings">
-          {BRACKET_STAGE_LABELS.map((label) => (
-            <span key={label}>{label}</span>
-          ))}
-        </div>
-        <div className="bracket-board">
-          {leftRounds.map((round) => renderRound(round, "left"))}
-          <div className="bracket-center">
-            <div className="bracket-lanes bracket-lanes-center">
-              {finalMatch && (
-                <div className="bracket-slot bracket-slot-center" style={{ gridRow: "5 / span 6" }}>
-                  <BracketMatchCard match={finalMatch} featured />
-                </div>
-              )}
-              {thirdPlaceMatch && (
-                <div className="bracket-slot bracket-slot-center bracket-slot-third" style={{ gridRow: "12 / span 4" }}>
-                  <BracketMatchCard match={thirdPlaceMatch} />
-                </div>
-              )}
+      <div className="bracket-linear-scroll" aria-label="Cruces ordenados hasta la final">
+        {linearRounds.map((round) => (
+          <section className="bracket-linear-column" key={round.id}>
+            <h3>{round.label}</h3>
+            <div className="bracket-linear-matches">
+              {round.matches.map((match) => (
+                <BracketMatchCard match={match} featured={match.match_number === FINAL_MATCH_NUMBER} key={match.id} />
+              ))}
             </div>
-          </div>
-          {rightRounds.map((round) => renderRound(round, "right"))}
-        </div>
+          </section>
+        ))}
       </div>
     </section>
   );

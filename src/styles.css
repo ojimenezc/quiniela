@@ -831,6 +831,43 @@ input[type="number"]::-webkit-outer-spin-button {
   scrollbar-width: thin;
 }
 
+.bracket-linear-scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 210px;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.bracket-linear-column {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.bracket-linear-column h3 {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #10251c;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.bracket-linear-matches {
+  display: grid;
+  gap: 10px;
+}
+
 .bracket-stage-headings {
   display: grid;
   grid-template-columns: repeat(4, 210px) 250px repeat(4, 210px);
@@ -1319,9 +1356,49 @@ form button {
   }
 
   .bracket-scroll {
+    display: none;
     margin-right: -14px;
     margin-left: -14px;
     padding: 0 14px 16px;
+  }
+
+  .bracket-linear-scroll {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 150px;
+    gap: 12px;
+    margin-right: -14px;
+    margin-left: -14px;
+    padding: 2px 14px 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .bracket-linear-column {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .bracket-linear-column h3 {
+    margin: 0;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: #10251c;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .bracket-linear-matches {
+    display: grid;
+    gap: 8px;
   }
 
   .bracket-stage-headings {
