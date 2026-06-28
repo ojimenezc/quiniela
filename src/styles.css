@@ -941,49 +941,6 @@ input[type="number"]::-webkit-outer-spin-button {
   min-height: 1120px;
 }
 
-.bracket-slot {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.bracket-slot::before,
-.bracket-slot::after {
-  position: absolute;
-  top: 50%;
-  z-index: 0;
-  width: 12px;
-  border-top: 2px solid #bed2c6;
-  content: "";
-}
-
-.bracket-slot::before {
-  left: -12px;
-}
-
-.bracket-slot::after {
-  right: -12px;
-}
-
-.bracket-column:first-child .bracket-slot-left::before,
-.bracket-column:last-child .bracket-slot-right::after,
-.bracket-slot-third::before,
-.bracket-slot-third::after {
-  display: none;
-}
-
-.bracket-slot-right::before,
-.bracket-slot-center::before {
-  width: 22px;
-  left: -22px;
-}
-
-.bracket-slot-left::after,
-.bracket-slot-center::after {
-  width: 22px;
-  right: -22px;
-}
-
 .bracket-match {
   position: relative;
   z-index: 1;
@@ -1430,11 +1387,6 @@ form button {
   .bracket-lanes-center {
     grid-template-rows: repeat(16, minmax(44px, 1fr));
     min-height: 708px;
-  }
-
-  .bracket-slot::before,
-  .bracket-slot::after {
-    display: none;
   }
 
   .bracket-match {
