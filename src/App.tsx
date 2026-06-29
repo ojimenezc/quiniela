@@ -222,6 +222,25 @@ function hasCompleteScore(match: Match): match is Match & { home_score: number; 
   return match.home_score !== null && match.away_score !== null;
 }
 
+function hasCompletePenaltyScore(
+  match: Match,
+): match is Match & { home_penalty_score: number; away_penalty_score: number } {
+  return match.home_penalty_score != null && match.away_penalty_score != null;
+}
+
+function canUsePenalties(match: Match) {
+  return !match.group_name;
+}
+
+function formatMatchScore(match: Match) {
+  if (!hasCompleteScore(match)) return "";
+
+  const regularScore = `${match.home_score} - ${match.away_score}`;
+  if (!hasCompletePenaltyScore(match)) return regularScore;
+
+  return `${regularScore} (${match.home_penalty_score} - ${match.away_penalty_score} pen.)`;
+}
+
 function TeamName({ name }: { name: string }) {
   const flag = TEAM_FLAGS[name];
   const displayName = TEAM_DISPLAY_NAMES[name] ?? name;
@@ -336,7 +355,13 @@ export function App() {
     await loadData();
   }
 
-  async function savePrediction(matchId: string, homeScore: number, awayScore: number) {
+  async function savePrediction(
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    homePenaltyScore: number | null = null,
+    awayPenaltyScore: number | null = null,
+  ) {
     if (!participant) return false;
 
     const match = matches.find((item) => item.id === matchId);
@@ -347,12 +372,22 @@ export function App() {
 
     const nextHomeScore = clampScore(homeScore);
     const nextAwayScore = clampScore(awayScore);
+    const nextHomePenaltyScore =
+      canUsePenalties(match) && nextHomeScore === nextAwayScore && homePenaltyScore !== null
+        ? clampScore(homePenaltyScore)
+        : null;
+    const nextAwayPenaltyScore =
+      canUsePenalties(match) && nextHomeScore === nextAwayScore && awayPenaltyScore !== null
+        ? clampScore(awayPenaltyScore)
+        : null;
     const { data, error } = await supabase.from("predictions").upsert(
       {
         participant_id: participant.id,
         match_id: matchId,
         home_score: nextHomeScore,
         away_score: nextAwayScore,
+        home_penalty_score: nextHomePenaltyScore,
+        away_penalty_score: nextAwayPenaltyScore,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "participant_id,match_id" },
@@ -374,10 +409,32 @@ export function App() {
     return true;
   }
 
-  async function saveResult(matchId: string, homeScore: number, awayScore: number) {
+  async function saveResult(
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    homePenaltyScore: number | null = null,
+    awayPenaltyScore: number | null = null,
+  ) {
+    const match = matches.find((item) => item.id === matchId);
+    const nextHomeScore = clampScore(homeScore);
+    const nextAwayScore = clampScore(awayScore);
+    const nextHomePenaltyScore =
+      match && canUsePenalties(match) && nextHomeScore === nextAwayScore && homePenaltyScore !== null
+        ? clampScore(homePenaltyScore)
+        : null;
+    const nextAwayPenaltyScore =
+      match && canUsePenalties(match) && nextHomeScore === nextAwayScore && awayPenaltyScore !== null
+        ? clampScore(awayPenaltyScore)
+        : null;
     const { error } = await supabase
       .from("matches")
-      .update({ home_score: clampScore(homeScore), away_score: clampScore(awayScore) })
+      .update({
+        home_score: nextHomeScore,
+        away_score: nextAwayScore,
+        home_penalty_score: nextHomePenaltyScore,
+        away_penalty_score: nextAwayPenaltyScore,
+      })
       .eq("id", matchId);
 
     setMessage(error ? "No se pudo guardar el marcador." : "Marcador actualizado.");
@@ -411,7 +468,13 @@ export function App() {
   async function clearResult(matchId: string) {
     const { error } = await supabase
       .from("matches")
-      .update({ home_score: null, away_score: null, status: "scheduled" })
+      .update({
+        home_score: null,
+        away_score: null,
+        home_penalty_score: null,
+        away_penalty_score: null,
+        status: "scheduled",
+      })
       .eq("id", matchId);
 
     setMessage(error ? "No se pudo quitar el resultado." : "Resultado quitado.");
@@ -431,6 +494,7 @@ export function App() {
       let resultOnlyHits = 0;
       let goalHits = 0;
       let goalBonusHits = 0;
+      let penaltyWinnerHits = 0;
       let scoredPredictions = 0;
       let predictionCount = 0;
 
@@ -446,6 +510,7 @@ export function App() {
         resultOnlyHits += Number(score.resultHit && !score.exactHit);
         goalHits += score.goalHits;
         goalBonusHits += score.exactHit ? 0 : score.goalHits;
+        penaltyWinnerHits += Number(score.penaltyWinnerHit);
         scoredPredictions += Number(
           Boolean(prediction) &&
             match.home_score !== null &&
@@ -461,6 +526,7 @@ export function App() {
         resultOnlyHits,
         goalHits,
         goalBonusHits,
+        penaltyWinnerHits,
         scoredPredictions,
         predictions: predictionCount,
       };
@@ -937,13 +1003,19 @@ function rankGroupRows(rows: GroupStandingRow[], matches: Match[]) {
 
 function getResolvedWinner(match: Match) {
   if (!hasCompleteScore(match)) return null;
-  if (match.home_score === match.away_score) return null;
+  if (match.home_score === match.away_score) {
+    if (!hasCompletePenaltyScore(match) || match.home_penalty_score === match.away_penalty_score) return null;
+    return match.home_penalty_score > match.away_penalty_score ? match.home_team : match.away_team;
+  }
   return match.home_score > match.away_score ? match.home_team : match.away_team;
 }
 
 function getResolvedLoser(match: Match) {
   if (!hasCompleteScore(match)) return null;
-  if (match.home_score === match.away_score) return null;
+  if (match.home_score === match.away_score) {
+    if (!hasCompletePenaltyScore(match) || match.home_penalty_score === match.away_penalty_score) return null;
+    return match.home_penalty_score > match.away_penalty_score ? match.away_team : match.home_team;
+  }
   return match.home_score > match.away_score ? match.away_team : match.home_team;
 }
 
@@ -1282,78 +1354,144 @@ function PredictionRow({
   match: Match;
   now: number;
   prediction?: Prediction;
-  onSave: (matchId: string, homeScore: number, awayScore: number) => Promise<boolean>;
+  onSave: (
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    homePenaltyScore?: number | null,
+    awayPenaltyScore?: number | null,
+  ) => Promise<boolean>;
 }) {
   const [homeScore, setHomeScore] = useState<ScoreInput>(prediction?.home_score ?? "");
   const [awayScore, setAwayScore] = useState<ScoreInput>(prediction?.away_score ?? "");
+  const [homePenaltyScore, setHomePenaltyScore] = useState<ScoreInput>(prediction?.home_penalty_score ?? "");
+  const [awayPenaltyScore, setAwayPenaltyScore] = useState<ScoreInput>(prediction?.away_penalty_score ?? "");
   const [hasUserEdited, setHasUserEdited] = useState(false);
-  const [pendingSave, setPendingSave] = useState<{ homeScore: number; awayScore: number } | null>(null);
+  const [pendingSave, setPendingSave] = useState<{
+    homeScore: number;
+    awayScore: number;
+    homePenaltyScore: number | null;
+    awayPenaltyScore: number | null;
+  } | null>(null);
   const savedHomeScore = prediction?.home_score;
   const savedAwayScore = prediction?.away_score;
+  const savedHomePenaltyScore = prediction?.home_penalty_score ?? null;
+  const savedAwayPenaltyScore = prediction?.away_penalty_score ?? null;
   const effectiveSavedHomeScore = pendingSave?.homeScore ?? savedHomeScore;
   const effectiveSavedAwayScore = pendingSave?.awayScore ?? savedAwayScore;
+  const effectiveSavedHomePenaltyScore = pendingSave?.homePenaltyScore ?? savedHomePenaltyScore;
+  const effectiveSavedAwayPenaltyScore = pendingSave?.awayPenaltyScore ?? savedAwayPenaltyScore;
   const locked = isMatchLocked(match, now);
   const score = describePredictionScore(match, prediction);
   const canSave = homeScore !== "" && awayScore !== "";
+  const canPredictPenalties = canUsePenalties(match) && canSave && homeScore === awayScore;
+  const nextHomePenaltyScore = canPredictPenalties && homePenaltyScore !== "" ? homePenaltyScore : null;
+  const nextAwayPenaltyScore = canPredictPenalties && awayPenaltyScore !== "" ? awayPenaltyScore : null;
 
   useEffect(() => {
     if (!hasUserEdited && !pendingSave) {
       setHomeScore(prediction?.home_score ?? "");
       setAwayScore(prediction?.away_score ?? "");
+      setHomePenaltyScore(prediction?.home_penalty_score ?? "");
+      setAwayPenaltyScore(prediction?.away_penalty_score ?? "");
     }
-  }, [hasUserEdited, pendingSave, prediction?.away_score, prediction?.home_score]);
+  }, [
+    hasUserEdited,
+    pendingSave,
+    prediction?.away_penalty_score,
+    prediction?.away_score,
+    prediction?.home_penalty_score,
+    prediction?.home_score,
+  ]);
 
   useEffect(() => {
     if (
       pendingSave &&
       prediction?.home_score === pendingSave.homeScore &&
-      prediction?.away_score === pendingSave.awayScore
+      prediction?.away_score === pendingSave.awayScore &&
+      (prediction?.home_penalty_score ?? null) === pendingSave.homePenaltyScore &&
+      (prediction?.away_penalty_score ?? null) === pendingSave.awayPenaltyScore
     ) {
       setPendingSave(null);
     }
-  }, [pendingSave, prediction?.away_score, prediction?.home_score]);
+  }, [
+    pendingSave,
+    prediction?.away_penalty_score,
+    prediction?.away_score,
+    prediction?.home_penalty_score,
+    prediction?.home_score,
+  ]);
 
   useEffect(() => {
     if (!hasUserEdited || locked || !canSave) return;
-    if (homeScore === effectiveSavedHomeScore && awayScore === effectiveSavedAwayScore) return;
+    if (
+      homeScore === effectiveSavedHomeScore &&
+      awayScore === effectiveSavedAwayScore &&
+      nextHomePenaltyScore === effectiveSavedHomePenaltyScore &&
+      nextAwayPenaltyScore === effectiveSavedAwayPenaltyScore
+    ) {
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
-      saveScores(homeScore, awayScore);
+      saveScores(homeScore, awayScore, nextHomePenaltyScore, nextAwayPenaltyScore);
     }, 800);
 
     return () => window.clearTimeout(timeoutId);
   }, [
     awayScore,
+    awayPenaltyScore,
     canSave,
+    canPredictPenalties,
     effectiveSavedAwayScore,
+    effectiveSavedAwayPenaltyScore,
     effectiveSavedHomeScore,
+    effectiveSavedHomePenaltyScore,
     hasUserEdited,
     homeScore,
+    homePenaltyScore,
     locked,
     match.id,
+    nextAwayPenaltyScore,
+    nextHomePenaltyScore,
   ]);
 
-  function saveScores(nextHomeScore: number, nextAwayScore: number) {
+  function saveScores(
+    nextHomeScore: number,
+    nextAwayScore: number,
+    nextPenaltyHomeScore: number | null,
+    nextPenaltyAwayScore: number | null,
+  ) {
     if (locked) {
       setHasUserEdited(false);
       return;
     }
 
-    if (nextHomeScore === effectiveSavedHomeScore && nextAwayScore === effectiveSavedAwayScore) {
+    if (
+      nextHomeScore === effectiveSavedHomeScore &&
+      nextAwayScore === effectiveSavedAwayScore &&
+      nextPenaltyHomeScore === effectiveSavedHomePenaltyScore &&
+      nextPenaltyAwayScore === effectiveSavedAwayPenaltyScore
+    ) {
       setHasUserEdited(false);
       return;
     }
 
-    setPendingSave({ homeScore: nextHomeScore, awayScore: nextAwayScore });
+    setPendingSave({
+      homeScore: nextHomeScore,
+      awayScore: nextAwayScore,
+      homePenaltyScore: nextPenaltyHomeScore,
+      awayPenaltyScore: nextPenaltyAwayScore,
+    });
     setHasUserEdited(false);
-    void onSave(match.id, nextHomeScore, nextAwayScore).then((saved) => {
+    void onSave(match.id, nextHomeScore, nextAwayScore, nextPenaltyHomeScore, nextPenaltyAwayScore).then((saved) => {
       if (!saved) setPendingSave(null);
     });
   }
 
   function saveNow() {
     if (homeScore === "" || awayScore === "") return;
-    saveScores(homeScore, awayScore);
+    saveScores(homeScore, awayScore, nextHomePenaltyScore, nextAwayPenaltyScore);
   }
 
   return (
@@ -1376,42 +1514,76 @@ function PredictionRow({
         {hasCompleteScore(match) && (
           <div className="official-score">
             <span>{match.status === "finished" ? "Final" : "Preliminar"}</span>
-            <strong>
-              {match.home_score} - {match.away_score}
-            </strong>
+            <strong>{formatMatchScore(match)}</strong>
           </div>
         )}
       </div>
-      <div className="score-editor">
-        <input
-          type="number"
-          min="0"
-          max={MAX_SCORE}
-          value={homeScore}
-          disabled={locked}
-          placeholder="Local"
-          onChange={(event) => {
-            setHasUserEdited(true);
-            setHomeScore(readScoreInput(event.target.value));
-          }}
-          onBlur={saveNow}
-          aria-label={`Goles de ${match.home_team}`}
-        />
-        <span>-</span>
-        <input
-          type="number"
-          min="0"
-          max={MAX_SCORE}
-          value={awayScore}
-          disabled={locked}
-          placeholder="Visita"
-          onChange={(event) => {
-            setHasUserEdited(true);
-            setAwayScore(readScoreInput(event.target.value));
-          }}
-          onBlur={saveNow}
-          aria-label={`Goles de ${match.away_team}`}
-        />
+      <div className="prediction-editors">
+        <div className="score-editor">
+          <input
+            type="number"
+            min="0"
+            max={MAX_SCORE}
+            value={homeScore}
+            disabled={locked}
+            placeholder="Local"
+            onChange={(event) => {
+              setHasUserEdited(true);
+              setHomeScore(readScoreInput(event.target.value));
+            }}
+            onBlur={saveNow}
+            aria-label={`Goles de ${match.home_team}`}
+          />
+          <span>-</span>
+          <input
+            type="number"
+            min="0"
+            max={MAX_SCORE}
+            value={awayScore}
+            disabled={locked}
+            placeholder="Visita"
+            onChange={(event) => {
+              setHasUserEdited(true);
+              setAwayScore(readScoreInput(event.target.value));
+            }}
+            onBlur={saveNow}
+            aria-label={`Goles de ${match.away_team}`}
+          />
+        </div>
+        {canPredictPenalties && (
+          <div className="score-editor penalty-editor" aria-label="Pronóstico de penales">
+            <small>Pen.</small>
+            <input
+              type="number"
+              min="0"
+              max={MAX_SCORE}
+              value={homePenaltyScore}
+              disabled={locked}
+              placeholder="L"
+              onChange={(event) => {
+                setHasUserEdited(true);
+                setHomePenaltyScore(readScoreInput(event.target.value));
+              }}
+              onBlur={saveNow}
+              aria-label={`Penales de ${match.home_team}`}
+            />
+            <span>-</span>
+            <input
+              type="number"
+              min="0"
+              max={MAX_SCORE}
+              value={awayPenaltyScore}
+              disabled={locked}
+              placeholder="V"
+              onChange={(event) => {
+                setHasUserEdited(true);
+                setAwayPenaltyScore(readScoreInput(event.target.value));
+              }}
+              onBlur={saveNow}
+              aria-label={`Penales de ${match.away_team}`}
+            />
+          </div>
+        )}
       </div>
       {hasCompleteScore(match) && (
         <div className="points-breakdown">
@@ -1432,7 +1604,13 @@ function ResultRow({
 }: {
   match: Match;
   onSaveTeams: (matchId: string, homeTeam: string, awayTeam: string) => void;
-  onSave: (matchId: string, homeScore: number, awayScore: number) => void;
+  onSave: (
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    homePenaltyScore?: number | null,
+    awayPenaltyScore?: number | null,
+  ) => void;
   onFinish: (matchId: string) => void;
   onClear: (matchId: string) => void;
 }) {
@@ -1440,10 +1618,15 @@ function ResultRow({
   const [awayTeam, setAwayTeam] = useState(match.away_team);
   const [homeScore, setHomeScore] = useState<ScoreInput>(match.home_score ?? "");
   const [awayScore, setAwayScore] = useState<ScoreInput>(match.away_score ?? "");
+  const [homePenaltyScore, setHomePenaltyScore] = useState<ScoreInput>(match.home_penalty_score ?? "");
+  const [awayPenaltyScore, setAwayPenaltyScore] = useState<ScoreInput>(match.away_penalty_score ?? "");
   const isFinished = match.status === "finished";
   const canEditTeams = !GROUP_STAGE_NAMES.has(match.stage);
   const canSave = homeScore !== "" && awayScore !== "";
   const canSaveTeams = homeTeam.trim() !== "" && awayTeam.trim() !== "";
+  const canEnterPenalties = canUsePenalties(match) && canSave && homeScore === awayScore;
+  const nextHomePenaltyScore = canEnterPenalties && homePenaltyScore !== "" ? homePenaltyScore : null;
+  const nextAwayPenaltyScore = canEnterPenalties && awayPenaltyScore !== "" ? awayPenaltyScore : null;
 
   useEffect(() => {
     setHomeTeam(match.home_team);
@@ -1453,7 +1636,9 @@ function ResultRow({
   useEffect(() => {
     setHomeScore(match.home_score ?? "");
     setAwayScore(match.away_score ?? "");
-  }, [match.away_score, match.home_score]);
+    setHomePenaltyScore(match.home_penalty_score ?? "");
+    setAwayPenaltyScore(match.away_penalty_score ?? "");
+  }, [match.away_penalty_score, match.away_score, match.home_penalty_score, match.home_score]);
 
   return (
     <article className={isFinished ? "match-row result-row finished" : "match-row result-row"}>
@@ -1498,30 +1683,58 @@ function ResultRow({
           </div>
         )}
         <div className="score-editor result-editor">
-          <input
-            type="number"
-            min="0"
-            max={MAX_SCORE}
-            value={homeScore}
-            placeholder="Local"
-            onChange={(event) => setHomeScore(readScoreInput(event.target.value))}
-            aria-label={`Resultado real de ${match.home_team}`}
-          />
-          <span>-</span>
-          <input
-            type="number"
-            min="0"
-            max={MAX_SCORE}
-            value={awayScore}
-            placeholder="Visita"
-            onChange={(event) => setAwayScore(readScoreInput(event.target.value))}
-            aria-label={`Resultado real de ${match.away_team}`}
-          />
+          <div className="score-editor">
+            <input
+              type="number"
+              min="0"
+              max={MAX_SCORE}
+              value={homeScore}
+              placeholder="Local"
+              onChange={(event) => setHomeScore(readScoreInput(event.target.value))}
+              aria-label={`Resultado real de ${match.home_team}`}
+            />
+            <span>-</span>
+            <input
+              type="number"
+              min="0"
+              max={MAX_SCORE}
+              value={awayScore}
+              placeholder="Visita"
+              onChange={(event) => setAwayScore(readScoreInput(event.target.value))}
+              aria-label={`Resultado real de ${match.away_team}`}
+            />
+          </div>
+          {canEnterPenalties && (
+            <div className="score-editor penalty-editor" aria-label="Resultado por penales">
+              <small>Pen.</small>
+              <input
+                type="number"
+                min="0"
+                max={MAX_SCORE}
+                value={homePenaltyScore}
+                placeholder="L"
+                onChange={(event) => setHomePenaltyScore(readScoreInput(event.target.value))}
+                aria-label={`Penales reales de ${match.home_team}`}
+              />
+              <span>-</span>
+              <input
+                type="number"
+                min="0"
+                max={MAX_SCORE}
+                value={awayPenaltyScore}
+                placeholder="V"
+                onChange={(event) => setAwayPenaltyScore(readScoreInput(event.target.value))}
+                aria-label={`Penales reales de ${match.away_team}`}
+              />
+            </div>
+          )}
           <button
             className="icon-button"
             disabled={!canSave}
             onClick={() => {
-              if (homeScore !== "" && awayScore !== "") onSave(match.id, homeScore, awayScore);
+              if (homeScore !== "" && awayScore !== "") {
+                onSave(match.id, homeScore, awayScore, nextHomePenaltyScore, nextAwayPenaltyScore);
+              }
             }}
             aria-label="Guardar resultado real"
             title="Guardar resultado real"
@@ -1541,7 +1754,11 @@ function ResultRow({
               <CheckCircle2 size={18} />
             </button>
           )}
-          {(isFinished || match.home_score !== null || match.away_score !== null) && (
+          {(isFinished ||
+            match.home_score !== null ||
+            match.away_score !== null ||
+            match.home_penalty_score !== null ||
+            match.away_penalty_score !== null) && (
             <button
               className="icon-button danger"
               onClick={() => onClear(match.id)}
@@ -1556,9 +1773,7 @@ function ResultRow({
       <div className="result-status">
         <span>{isFinished ? "Finalizado" : "Pendiente"}</span>
         {isFinished && (
-          <strong>
-            {match.home_score} - {match.away_score}
-          </strong>
+          <strong>{formatMatchScore(match)}</strong>
         )}
       </div>
     </article>
@@ -1573,6 +1788,7 @@ function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
       {visibleRows.map((row, index) => {
         const exactPoints = row.exactHits * 5;
         const resultPoints = row.resultOnlyHits * 3;
+        const penaltyPoints = row.penaltyWinnerHits * 2;
 
         return (
           <div className="leaderboard-row" key={row.participant.id}>
@@ -1581,7 +1797,8 @@ function Leaderboard({ rows }: { rows: LeaderboardRow[] }) {
             <b>{row.points} pts</b>
             <small>
               {row.points} pts = {row.exactHits} exactos ({exactPoints}) + {row.resultOnlyHits} resultados (
-              {resultPoints}) + {row.goalBonusHits} goles ({row.goalBonusHits}).
+              {resultPoints}) + {row.goalBonusHits} goles ({row.goalBonusHits}) + {row.penaltyWinnerHits} penales (
+              {penaltyPoints}).
             </small>
             <small className="leaderboard-context">
               Puntúan {row.scoredPredictions} de {row.predictions} pronósticos guardados con marcador cargado.
@@ -1644,11 +1861,21 @@ function BracketMatchCard({ match, featured = false }: { match: Match; featured?
       <span>{match.match_number ? `P${match.match_number}` : match.stage}</span>
       <div className={winner === match.home_team ? "bracket-team winner" : "bracket-team"}>
         <TeamName name={match.home_team} />
-        {hasScore && <b>{match.home_score}</b>}
+        {hasScore && (
+          <span className="bracket-scores">
+            <b>{match.home_score}</b>
+            {hasCompletePenaltyScore(match) && <small>{match.home_penalty_score}</small>}
+          </span>
+        )}
       </div>
       <div className={winner === match.away_team ? "bracket-team winner" : "bracket-team"}>
         <TeamName name={match.away_team} />
-        {hasScore && <b>{match.away_score}</b>}
+        {hasScore && (
+          <span className="bracket-scores">
+            <b>{match.away_score}</b>
+            {hasCompletePenaltyScore(match) && <small>{match.away_penalty_score}</small>}
+          </span>
+        )}
       </div>
     </article>
   );

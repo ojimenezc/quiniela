@@ -17,6 +17,8 @@ create table if not exists matches (
   starts_at timestamptz not null,
   home_score integer,
   away_score integer,
+  home_penalty_score integer check (home_penalty_score >= 0),
+  away_penalty_score integer check (away_penalty_score >= 0),
   status text not null default 'scheduled' check (status in ('scheduled', 'finished')),
   created_at timestamptz not null default now()
 );
@@ -27,10 +29,17 @@ create table if not exists predictions (
   match_id uuid not null references matches(id) on delete cascade,
   home_score integer not null check (home_score >= 0),
   away_score integer not null check (away_score >= 0),
+  home_penalty_score integer check (home_penalty_score >= 0),
+  away_penalty_score integer check (away_penalty_score >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (participant_id, match_id)
 );
+
+alter table matches add column if not exists home_penalty_score integer check (home_penalty_score >= 0);
+alter table matches add column if not exists away_penalty_score integer check (away_penalty_score >= 0);
+alter table predictions add column if not exists home_penalty_score integer check (home_penalty_score >= 0);
+alter table predictions add column if not exists away_penalty_score integer check (away_penalty_score >= 0);
 
 create index if not exists predictions_participant_id_idx on predictions(participant_id);
 create index if not exists predictions_match_id_idx on predictions(match_id);

@@ -4,6 +4,7 @@ export const SCORING_RULES = [
   { label: "Marcador exacto", points: 5, description: "acertar los goles de ambos equipos." },
   { label: "Resultado correcto", points: 3, description: "acertar ganador o empate sin marcador exacto." },
   { label: "Gol acertado", points: 1, description: "por cada equipo cuyo gol pronosticado coincida." },
+  { label: "Ganador por penales", points: 2, description: "si el partido se define en penales." },
 ] as const;
 
 export function matchOutcome(home: number, away: number) {
@@ -12,13 +13,45 @@ export function matchOutcome(home: number, away: number) {
   return "draw";
 }
 
+function hasPenaltyScore(
+  match: Match,
+): match is Match & { home_penalty_score: number; away_penalty_score: number } {
+  return match.home_penalty_score != null && match.away_penalty_score != null;
+}
+
+function penaltyOutcome(home: number, away: number) {
+  if (home > away) return "home";
+  if (away > home) return "away";
+  return null;
+}
+
 export function scorePrediction(match: Match, prediction?: Prediction) {
   if (
     !prediction ||
     match.home_score === null ||
     match.away_score === null
   ) {
-    return { points: 0, exactHit: false, resultHit: false, goalHits: 0 };
+    return { points: 0, exactHit: false, resultHit: false, goalHits: 0, penaltyWinnerHit: false };
+  }
+
+  if (hasPenaltyScore(match)) {
+    const officialHomePenaltyScore = match.home_penalty_score;
+    const officialAwayPenaltyScore = match.away_penalty_score;
+    const officialPenaltyOutcome = penaltyOutcome(officialHomePenaltyScore, officialAwayPenaltyScore);
+    const predictedPenaltyOutcome =
+      prediction.home_penalty_score !== null && prediction.away_penalty_score !== null
+        ? penaltyOutcome(prediction.home_penalty_score, prediction.away_penalty_score)
+        : null;
+    const penaltyWinnerHit =
+      officialPenaltyOutcome !== null && predictedPenaltyOutcome === officialPenaltyOutcome;
+
+    return {
+      points: penaltyWinnerHit ? 2 : 0,
+      exactHit: false,
+      resultHit: false,
+      goalHits: 0,
+      penaltyWinnerHit,
+    };
   }
 
   const exactHit =
@@ -30,13 +63,14 @@ export function scorePrediction(match: Match, prediction?: Prediction) {
     Number(prediction.home_score === match.home_score) +
     Number(prediction.away_score === match.away_score);
 
-  if (exactHit) return { points: 5, exactHit, resultHit, goalHits };
+  if (exactHit) return { points: 5, exactHit, resultHit, goalHits, penaltyWinnerHit: false };
 
   return {
     points: (resultHit ? 3 : 0) + goalHits,
     exactHit,
     resultHit,
     goalHits,
+    penaltyWinnerHit: false,
   };
 }
 
@@ -49,6 +83,17 @@ export function describePredictionScore(match: Match, prediction?: Prediction) {
 
   if (!prediction) {
     return { ...score, details: ["Sin pronóstico guardado para este partido."] };
+  }
+
+  if (hasPenaltyScore(match)) {
+    return {
+      ...score,
+      details: [
+        score.penaltyWinnerHit
+          ? "Ganador por penales acertado: +2 pts."
+          : "El partido fue a penales; solo cuenta el ganador por penales.",
+      ],
+    };
   }
 
   const details = [

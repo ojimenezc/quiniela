@@ -8,6 +8,10 @@ delete from participants;
 
 alter table matches add column if not exists venue text;
 alter table matches add column if not exists match_number integer;
+alter table matches add column if not exists home_penalty_score integer check (home_penalty_score >= 0);
+alter table matches add column if not exists away_penalty_score integer check (away_penalty_score >= 0);
+alter table predictions add column if not exists home_penalty_score integer check (home_penalty_score >= 0);
+alter table predictions add column if not exists away_penalty_score integer check (away_penalty_score >= 0);
 
 insert into matches (match_number, stage, group_name, home_team, away_team, starts_at, venue, status)
 values

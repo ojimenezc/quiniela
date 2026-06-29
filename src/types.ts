@@ -17,6 +17,8 @@ export type Match = {
   venue: string | null;
   home_score: number | null;
   away_score: number | null;
+  home_penalty_score: number | null;
+  away_penalty_score: number | null;
   status: "scheduled" | "finished";
 };
 
@@ -26,6 +28,8 @@ export type Prediction = {
   match_id: string;
   home_score: number;
   away_score: number;
+  home_penalty_score: number | null;
+  away_penalty_score: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -38,6 +42,7 @@ export type LeaderboardRow = {
   resultOnlyHits: number;
   goalHits: number;
   goalBonusHits: number;
+  penaltyWinnerHits: number;
   scoredPredictions: number;
   predictions: number;
 };
