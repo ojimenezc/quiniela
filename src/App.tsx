@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Trophy,
   Save,
@@ -555,9 +555,7 @@ export function App() {
     setParticipant(null);
   }
 
-  if (!participant) {
-    return <LoginScreen loading={loading} message={message} onLogin={handleLogin} />;
-  }
+  if (!participant) return <PublicSamplePage />;
 
   return (
     <main className="app-shell">
@@ -568,15 +566,9 @@ export function App() {
           <p className="eyebrow">Quiniela Mundial</p>
           <h1>Hola, {participant.name}</h1>
         </div>
-        <div className="topbar-actions">
-          <a className="sample-link" href={FREE_SAMPLE_URL} target="_blank" rel="noreferrer">
-            <Download size={18} />
-            Free sample
-          </a>
-          <button className="icon-button" onClick={logout} aria-label="Salir" title="Salir">
-            <LogOut size={20} />
-          </button>
-        </div>
+        <button className="icon-button" onClick={logout} aria-label="Salir" title="Salir">
+          <LogOut size={20} />
+        </button>
       </header>
 
       {message && (
@@ -1216,46 +1208,17 @@ function MatchGroup({
   );
 }
 
-function LoginScreen({
-  loading,
-  message,
-  onLogin,
-}: {
-  loading: boolean;
-  message: string;
-  onLogin: (name: string, pin: string) => void;
-}) {
-  const [name, setName] = useState("");
-  const [pin, setPin] = useState("");
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    onLogin(name, pin);
-  }
-
+function PublicSamplePage() {
   return (
     <main className="login-page">
       <section className="login-panel">
-        <p className="eyebrow">Quiniela Mundial</p>
-        <h1>Pronósticos del equipo</h1>
+        <p className="eyebrow">Free sample</p>
+        <h1>Modern Software Engineering</h1>
+        <p className="sample-copy">Download the first edition sample directly from the website.</p>
         <a className="sample-link login-sample-link" href={FREE_SAMPLE_URL} target="_blank" rel="noreferrer">
           <Download size={18} />
           Download free sample
         </a>
-        <form onSubmit={submit}>
-          <label>
-            Alias
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Tu nombre" />
-          </label>
-          <label>
-            PIN
-            <input value={pin} onChange={(event) => setPin(event.target.value)} placeholder="Cualquier PIN que recuerdes" />
-          </label>
-          <button type="submit" disabled={loading}>
-            Entrar
-          </button>
-        </form>
-        {message && <div className="notice">{message}</div>}
       </section>
     </main>
   );
