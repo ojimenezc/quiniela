@@ -26,14 +26,6 @@ function penaltyOutcome(home: number, away: number) {
 }
 
 function predictionWinner(prediction: Prediction) {
-  if (prediction.home_penalty_score != null && prediction.away_penalty_score != null) {
-    const predictedPenaltyOutcome = penaltyOutcome(
-      prediction.home_penalty_score,
-      prediction.away_penalty_score,
-    );
-    if (predictedPenaltyOutcome !== null) return predictedPenaltyOutcome;
-  }
-
   const predictedMatchOutcome = matchOutcome(prediction.home_score, prediction.away_score);
   return predictedMatchOutcome === "draw" ? null : predictedMatchOutcome;
 }

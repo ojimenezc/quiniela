@@ -28,8 +28,6 @@ export type Prediction = {
   match_id: string;
   home_score: number;
   away_score: number;
-  home_penalty_score: number | null;
-  away_penalty_score: number | null;
   created_at: string;
   updated_at: string;
 };

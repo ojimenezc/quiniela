@@ -527,12 +527,6 @@ h3 {
   min-width: max-content;
 }
 
-.prediction-editors {
-  display: grid;
-  justify-items: end;
-  gap: 6px;
-}
-
 .penalty-editor {
   padding-top: 6px;
   border-top: 1px solid #deebe3;
@@ -1304,11 +1298,6 @@ form button {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     width: 100%;
     min-width: 0;
-  }
-
-  .prediction-editors {
-    width: 100%;
-    justify-items: stretch;
   }
 
   .penalty-editor {

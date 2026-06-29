@@ -355,13 +355,7 @@ export function App() {
     await loadData();
   }
 
-  async function savePrediction(
-    matchId: string,
-    homeScore: number,
-    awayScore: number,
-    homePenaltyScore: number | null = null,
-    awayPenaltyScore: number | null = null,
-  ) {
+  async function savePrediction(matchId: string, homeScore: number, awayScore: number) {
     if (!participant) return false;
 
     const match = matches.find((item) => item.id === matchId);
@@ -372,22 +366,12 @@ export function App() {
 
     const nextHomeScore = clampScore(homeScore);
     const nextAwayScore = clampScore(awayScore);
-    const nextHomePenaltyScore =
-      canUsePenalties(match) && homePenaltyScore !== null
-        ? clampScore(homePenaltyScore)
-        : null;
-    const nextAwayPenaltyScore =
-      canUsePenalties(match) && awayPenaltyScore !== null
-        ? clampScore(awayPenaltyScore)
-        : null;
     const { data, error } = await supabase.from("predictions").upsert(
       {
         participant_id: participant.id,
         match_id: matchId,
         home_score: nextHomeScore,
         away_score: nextAwayScore,
-        home_penalty_score: nextHomePenaltyScore,
-        away_penalty_score: nextAwayPenaltyScore,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "participant_id,match_id" },
@@ -1354,144 +1338,78 @@ function PredictionRow({
   match: Match;
   now: number;
   prediction?: Prediction;
-  onSave: (
-    matchId: string,
-    homeScore: number,
-    awayScore: number,
-    homePenaltyScore?: number | null,
-    awayPenaltyScore?: number | null,
-  ) => Promise<boolean>;
+  onSave: (matchId: string, homeScore: number, awayScore: number) => Promise<boolean>;
 }) {
   const [homeScore, setHomeScore] = useState<ScoreInput>(prediction?.home_score ?? "");
   const [awayScore, setAwayScore] = useState<ScoreInput>(prediction?.away_score ?? "");
-  const [homePenaltyScore, setHomePenaltyScore] = useState<ScoreInput>(prediction?.home_penalty_score ?? "");
-  const [awayPenaltyScore, setAwayPenaltyScore] = useState<ScoreInput>(prediction?.away_penalty_score ?? "");
   const [hasUserEdited, setHasUserEdited] = useState(false);
-  const [pendingSave, setPendingSave] = useState<{
-    homeScore: number;
-    awayScore: number;
-    homePenaltyScore: number | null;
-    awayPenaltyScore: number | null;
-  } | null>(null);
+  const [pendingSave, setPendingSave] = useState<{ homeScore: number; awayScore: number } | null>(null);
   const savedHomeScore = prediction?.home_score;
   const savedAwayScore = prediction?.away_score;
-  const savedHomePenaltyScore = prediction?.home_penalty_score ?? null;
-  const savedAwayPenaltyScore = prediction?.away_penalty_score ?? null;
   const effectiveSavedHomeScore = pendingSave?.homeScore ?? savedHomeScore;
   const effectiveSavedAwayScore = pendingSave?.awayScore ?? savedAwayScore;
-  const effectiveSavedHomePenaltyScore = pendingSave?.homePenaltyScore ?? savedHomePenaltyScore;
-  const effectiveSavedAwayPenaltyScore = pendingSave?.awayPenaltyScore ?? savedAwayPenaltyScore;
   const locked = isMatchLocked(match, now);
   const score = describePredictionScore(match, prediction);
   const canSave = homeScore !== "" && awayScore !== "";
-  const canPredictPenalties = canUsePenalties(match);
-  const nextHomePenaltyScore = canPredictPenalties && homePenaltyScore !== "" ? homePenaltyScore : null;
-  const nextAwayPenaltyScore = canPredictPenalties && awayPenaltyScore !== "" ? awayPenaltyScore : null;
 
   useEffect(() => {
     if (!hasUserEdited && !pendingSave) {
       setHomeScore(prediction?.home_score ?? "");
       setAwayScore(prediction?.away_score ?? "");
-      setHomePenaltyScore(prediction?.home_penalty_score ?? "");
-      setAwayPenaltyScore(prediction?.away_penalty_score ?? "");
     }
-  }, [
-    hasUserEdited,
-    pendingSave,
-    prediction?.away_penalty_score,
-    prediction?.away_score,
-    prediction?.home_penalty_score,
-    prediction?.home_score,
-  ]);
+  }, [hasUserEdited, pendingSave, prediction?.away_score, prediction?.home_score]);
 
   useEffect(() => {
     if (
       pendingSave &&
       prediction?.home_score === pendingSave.homeScore &&
-      prediction?.away_score === pendingSave.awayScore &&
-      (prediction?.home_penalty_score ?? null) === pendingSave.homePenaltyScore &&
-      (prediction?.away_penalty_score ?? null) === pendingSave.awayPenaltyScore
+      prediction?.away_score === pendingSave.awayScore
     ) {
       setPendingSave(null);
     }
-  }, [
-    pendingSave,
-    prediction?.away_penalty_score,
-    prediction?.away_score,
-    prediction?.home_penalty_score,
-    prediction?.home_score,
-  ]);
+  }, [pendingSave, prediction?.away_score, prediction?.home_score]);
 
   useEffect(() => {
     if (!hasUserEdited || locked || !canSave) return;
-    if (
-      homeScore === effectiveSavedHomeScore &&
-      awayScore === effectiveSavedAwayScore &&
-      nextHomePenaltyScore === effectiveSavedHomePenaltyScore &&
-      nextAwayPenaltyScore === effectiveSavedAwayPenaltyScore
-    ) {
-      return;
-    }
+    if (homeScore === effectiveSavedHomeScore && awayScore === effectiveSavedAwayScore) return;
 
     const timeoutId = window.setTimeout(() => {
-      saveScores(homeScore, awayScore, nextHomePenaltyScore, nextAwayPenaltyScore);
+      saveScores(homeScore, awayScore);
     }, 800);
 
     return () => window.clearTimeout(timeoutId);
   }, [
     awayScore,
-    awayPenaltyScore,
     canSave,
-    canPredictPenalties,
     effectiveSavedAwayScore,
-    effectiveSavedAwayPenaltyScore,
     effectiveSavedHomeScore,
-    effectiveSavedHomePenaltyScore,
     hasUserEdited,
     homeScore,
-    homePenaltyScore,
     locked,
     match.id,
-    nextAwayPenaltyScore,
-    nextHomePenaltyScore,
   ]);
 
-  function saveScores(
-    nextHomeScore: number,
-    nextAwayScore: number,
-    nextPenaltyHomeScore: number | null,
-    nextPenaltyAwayScore: number | null,
-  ) {
+  function saveScores(nextHomeScore: number, nextAwayScore: number) {
     if (locked) {
       setHasUserEdited(false);
       return;
     }
 
-    if (
-      nextHomeScore === effectiveSavedHomeScore &&
-      nextAwayScore === effectiveSavedAwayScore &&
-      nextPenaltyHomeScore === effectiveSavedHomePenaltyScore &&
-      nextPenaltyAwayScore === effectiveSavedAwayPenaltyScore
-    ) {
+    if (nextHomeScore === effectiveSavedHomeScore && nextAwayScore === effectiveSavedAwayScore) {
       setHasUserEdited(false);
       return;
     }
 
-    setPendingSave({
-      homeScore: nextHomeScore,
-      awayScore: nextAwayScore,
-      homePenaltyScore: nextPenaltyHomeScore,
-      awayPenaltyScore: nextPenaltyAwayScore,
-    });
+    setPendingSave({ homeScore: nextHomeScore, awayScore: nextAwayScore });
     setHasUserEdited(false);
-    void onSave(match.id, nextHomeScore, nextAwayScore, nextPenaltyHomeScore, nextPenaltyAwayScore).then((saved) => {
+    void onSave(match.id, nextHomeScore, nextAwayScore).then((saved) => {
       if (!saved) setPendingSave(null);
     });
   }
 
   function saveNow() {
     if (homeScore === "" || awayScore === "") return;
-    saveScores(homeScore, awayScore, nextHomePenaltyScore, nextAwayPenaltyScore);
+    saveScores(homeScore, awayScore);
   }
 
   return (
@@ -1518,72 +1436,36 @@ function PredictionRow({
           </div>
         )}
       </div>
-      <div className="prediction-editors">
-        <div className="score-editor">
-          <input
-            type="number"
-            min="0"
-            max={MAX_SCORE}
-            value={homeScore}
-            disabled={locked}
-            placeholder="Local"
-            onChange={(event) => {
-              setHasUserEdited(true);
-              setHomeScore(readScoreInput(event.target.value));
-            }}
-            onBlur={saveNow}
-            aria-label={`Goles de ${match.home_team}`}
-          />
-          <span>-</span>
-          <input
-            type="number"
-            min="0"
-            max={MAX_SCORE}
-            value={awayScore}
-            disabled={locked}
-            placeholder="Visita"
-            onChange={(event) => {
-              setHasUserEdited(true);
-              setAwayScore(readScoreInput(event.target.value));
-            }}
-            onBlur={saveNow}
-            aria-label={`Goles de ${match.away_team}`}
-          />
-        </div>
-        {canPredictPenalties && (
-          <div className="score-editor penalty-editor" aria-label="Pronóstico de penales">
-            <small>Pen.</small>
-            <input
-              type="number"
-              min="0"
-              max={MAX_SCORE}
-              value={homePenaltyScore}
-              disabled={locked}
-              placeholder="L"
-              onChange={(event) => {
-                setHasUserEdited(true);
-                setHomePenaltyScore(readScoreInput(event.target.value));
-              }}
-              onBlur={saveNow}
-              aria-label={`Penales de ${match.home_team}`}
-            />
-            <span>-</span>
-            <input
-              type="number"
-              min="0"
-              max={MAX_SCORE}
-              value={awayPenaltyScore}
-              disabled={locked}
-              placeholder="V"
-              onChange={(event) => {
-                setHasUserEdited(true);
-                setAwayPenaltyScore(readScoreInput(event.target.value));
-              }}
-              onBlur={saveNow}
-              aria-label={`Penales de ${match.away_team}`}
-            />
-          </div>
-        )}
+      <div className="score-editor">
+        <input
+          type="number"
+          min="0"
+          max={MAX_SCORE}
+          value={homeScore}
+          disabled={locked}
+          placeholder="Local"
+          onChange={(event) => {
+            setHasUserEdited(true);
+            setHomeScore(readScoreInput(event.target.value));
+          }}
+          onBlur={saveNow}
+          aria-label={`Goles de ${match.home_team}`}
+        />
+        <span>-</span>
+        <input
+          type="number"
+          min="0"
+          max={MAX_SCORE}
+          value={awayScore}
+          disabled={locked}
+          placeholder="Visita"
+          onChange={(event) => {
+            setHasUserEdited(true);
+            setAwayScore(readScoreInput(event.target.value));
+          }}
+          onBlur={saveNow}
+          aria-label={`Goles de ${match.away_team}`}
+        />
       </div>
       {hasCompleteScore(match) && (
         <div className="points-breakdown">
