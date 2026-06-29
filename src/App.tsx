@@ -9,6 +9,7 @@ import {
   ChevronRight,
   RotateCcw,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import { supabase } from "./supabase";
 import { SCORING_RULES, describePredictionScore, scorePrediction } from "./scoring";
@@ -16,6 +17,8 @@ import type { LeaderboardRow, Match, Participant, Prediction } from "./types";
 import type { ReactNode } from "react";
 
 const SESSION_KEY = "quiniela.participant";
+const FREE_SAMPLE_URL =
+  "https://mrniueczenuttuvbegzv.supabase.co/storage/v1/object/sign/books/Modern_Software_Engineering_First_Edition_Free_Sample.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV83NzFkMjY5Ny1jMmRlLTRkMjEtODUyYi0zYzExZDI1MGMyNzUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJib29rcy9Nb2Rlcm5fU29mdHdhcmVfRW5naW5lZXJpbmdfRmlyc3RfRWRpdGlvbl9GcmVlX1NhbXBsZS5wZGYiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzgyNzU0NDYxLCJleHAiOjQ5MzYzNTQ0NjF9.3WXbysWRLomaMRR6PIt7fYYHpk2rKNVoTmrSE8we8UE";
 const MAX_SCORE = 15;
 const GROUP_STAGE_NAMES = new Set(Array.from({ length: 17 }, (_, index) => `Jornada ${index + 1}`));
 const PHASE_TABS = [
@@ -565,9 +568,15 @@ export function App() {
           <p className="eyebrow">Quiniela Mundial</p>
           <h1>Hola, {participant.name}</h1>
         </div>
-        <button className="icon-button" onClick={logout} aria-label="Salir" title="Salir">
-          <LogOut size={20} />
-        </button>
+        <div className="topbar-actions">
+          <a className="sample-link" href={FREE_SAMPLE_URL} target="_blank" rel="noreferrer">
+            <Download size={18} />
+            Free sample
+          </a>
+          <button className="icon-button" onClick={logout} aria-label="Salir" title="Salir">
+            <LogOut size={20} />
+          </button>
+        </div>
       </header>
 
       {message && (
@@ -1229,6 +1238,10 @@ function LoginScreen({
       <section className="login-panel">
         <p className="eyebrow">Quiniela Mundial</p>
         <h1>Pronósticos del equipo</h1>
+        <a className="sample-link login-sample-link" href={FREE_SAMPLE_URL} target="_blank" rel="noreferrer">
+          <Download size={18} />
+          Download free sample
+        </a>
         <form onSubmit={submit}>
           <label>
             Alias
