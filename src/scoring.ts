@@ -25,6 +25,19 @@ function penaltyOutcome(home: number, away: number) {
   return null;
 }
 
+function predictionWinner(prediction: Prediction) {
+  if (prediction.home_penalty_score != null && prediction.away_penalty_score != null) {
+    const predictedPenaltyOutcome = penaltyOutcome(
+      prediction.home_penalty_score,
+      prediction.away_penalty_score,
+    );
+    if (predictedPenaltyOutcome !== null) return predictedPenaltyOutcome;
+  }
+
+  const predictedMatchOutcome = matchOutcome(prediction.home_score, prediction.away_score);
+  return predictedMatchOutcome === "draw" ? null : predictedMatchOutcome;
+}
+
 export function scorePrediction(match: Match, prediction?: Prediction) {
   if (
     !prediction ||
@@ -38,10 +51,7 @@ export function scorePrediction(match: Match, prediction?: Prediction) {
     const officialHomePenaltyScore = match.home_penalty_score;
     const officialAwayPenaltyScore = match.away_penalty_score;
     const officialPenaltyOutcome = penaltyOutcome(officialHomePenaltyScore, officialAwayPenaltyScore);
-    const predictedPenaltyOutcome =
-      prediction.home_penalty_score !== null && prediction.away_penalty_score !== null
-        ? penaltyOutcome(prediction.home_penalty_score, prediction.away_penalty_score)
-        : null;
+    const predictedPenaltyOutcome = predictionWinner(prediction);
     const penaltyWinnerHit =
       officialPenaltyOutcome !== null && predictedPenaltyOutcome === officialPenaltyOutcome;
 
@@ -90,7 +100,7 @@ export function describePredictionScore(match: Match, prediction?: Prediction) {
       ...score,
       details: [
         score.penaltyWinnerHit
-          ? "Ganador por penales acertado: +2 pts."
+          ? "Ganador por penales acertado: +2 pts. Solo se puntuó por penales."
           : "El partido fue a penales; solo cuenta el ganador por penales.",
       ],
     };

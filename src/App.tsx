@@ -373,11 +373,11 @@ export function App() {
     const nextHomeScore = clampScore(homeScore);
     const nextAwayScore = clampScore(awayScore);
     const nextHomePenaltyScore =
-      canUsePenalties(match) && nextHomeScore === nextAwayScore && homePenaltyScore !== null
+      canUsePenalties(match) && homePenaltyScore !== null
         ? clampScore(homePenaltyScore)
         : null;
     const nextAwayPenaltyScore =
-      canUsePenalties(match) && nextHomeScore === nextAwayScore && awayPenaltyScore !== null
+      canUsePenalties(match) && awayPenaltyScore !== null
         ? clampScore(awayPenaltyScore)
         : null;
     const { data, error } = await supabase.from("predictions").upsert(
@@ -1384,7 +1384,7 @@ function PredictionRow({
   const locked = isMatchLocked(match, now);
   const score = describePredictionScore(match, prediction);
   const canSave = homeScore !== "" && awayScore !== "";
-  const canPredictPenalties = canUsePenalties(match) && canSave && homeScore === awayScore;
+  const canPredictPenalties = canUsePenalties(match);
   const nextHomePenaltyScore = canPredictPenalties && homePenaltyScore !== "" ? homePenaltyScore : null;
   const nextAwayPenaltyScore = canPredictPenalties && awayPenaltyScore !== "" ? awayPenaltyScore : null;
 
