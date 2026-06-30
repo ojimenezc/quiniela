@@ -1312,11 +1312,21 @@ form button {
   }
 
   .result-editor {
-    grid-template-columns: minmax(0, 1fr) 46px 46px 46px;
+    grid-template-columns: repeat(3, 46px) minmax(0, 1fr);
+    justify-content: start;
   }
 
   .result-editor > .score-editor,
   .result-editor > .penalty-editor {
+    grid-column: 1 / -1;
+  }
+
+  .result-editor > .penalty-editor {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .result-warning {
     grid-column: 1 / -1;
   }
 
@@ -1570,7 +1580,7 @@ form button {
   }
 
   .score-editor {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   }
 
   .team-editor {
@@ -1582,7 +1592,27 @@ form button {
   }
 
   .result-editor {
-    grid-template-columns: minmax(70px, 1fr) auto minmax(70px, 1fr) 44px 44px 44px;
+    grid-template-columns: repeat(3, 44px) minmax(0, 1fr);
+  }
+
+  .result-editor > .penalty-editor {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .result-editor > .penalty-editor small {
+    grid-column: 1 / -1;
+  }
+
+  .result-editor > .penalty-editor input:first-of-type {
+    grid-column: 1;
+  }
+
+  .result-editor > .penalty-editor span {
+    grid-column: 2;
+  }
+
+  .result-editor > .penalty-editor input:last-of-type {
+    grid-column: 3;
   }
 
   .leaderboard-row {
