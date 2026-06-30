@@ -39,6 +39,10 @@ export function scorePrediction(match: Match, prediction?: Prediction) {
     return { points: 0, exactHit: false, resultHit: false, goalHits: 0, penaltyWinnerHit: false };
   }
 
+  const goalHits =
+    Number(prediction.home_score === match.home_score) +
+    Number(prediction.away_score === match.away_score);
+
   if (hasPenaltyScore(match)) {
     const officialHomePenaltyScore = match.home_penalty_score;
     const officialAwayPenaltyScore = match.away_penalty_score;
@@ -48,10 +52,10 @@ export function scorePrediction(match: Match, prediction?: Prediction) {
       officialPenaltyOutcome !== null && predictedPenaltyOutcome === officialPenaltyOutcome;
 
     return {
-      points: penaltyWinnerHit ? 2 : 0,
+      points: (penaltyWinnerHit ? 2 : 0) + goalHits,
       exactHit: false,
       resultHit: false,
-      goalHits: 0,
+      goalHits,
       penaltyWinnerHit,
     };
   }
@@ -61,9 +65,6 @@ export function scorePrediction(match: Match, prediction?: Prediction) {
   const resultHit =
     matchOutcome(prediction.home_score, prediction.away_score) ===
     matchOutcome(match.home_score, match.away_score);
-  const goalHits =
-    Number(prediction.home_score === match.home_score) +
-    Number(prediction.away_score === match.away_score);
 
   if (exactHit) return { points: 5, exactHit, resultHit, goalHits, penaltyWinnerHit: false };
 
@@ -88,13 +89,17 @@ export function describePredictionScore(match: Match, prediction?: Prediction) {
   }
 
   if (hasPenaltyScore(match)) {
+    const details = [
+      score.penaltyWinnerHit ? "Ganador por penales acertado: +2 pts." : null,
+      score.goalHits > 0
+        ? `Goles acertados: +${score.goalHits} ${score.goalHits === 1 ? "pto" : "pts"}.`
+        : null,
+      score.points === 0 ? "No acertó ganador por penales ni goles individuales." : null,
+    ].filter((detail): detail is string => Boolean(detail));
+
     return {
       ...score,
-      details: [
-        score.penaltyWinnerHit
-          ? "Ganador por penales acertado: +2 pts. Solo se puntuó por penales."
-          : "El partido fue a penales; solo cuenta el ganador por penales.",
-      ],
+      details,
     };
   }
 
