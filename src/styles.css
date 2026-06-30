@@ -539,6 +539,13 @@ h3 {
   text-transform: uppercase;
 }
 
+.result-warning {
+  flex-basis: 100%;
+  color: #b8241b;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .admin-match-controls {
   display: grid;
   gap: 9px;

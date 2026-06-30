@@ -17,6 +17,8 @@ import type { ReactNode } from "react";
 
 const SESSION_KEY = "quiniela.participant";
 const MAX_SCORE = 15;
+const MATCH_SELECT =
+  "id,match_number,stage,group_name,home_team,away_team,starts_at,venue,home_score,away_score,home_penalty_score,away_penalty_score,status";
 const GROUP_STAGE_NAMES = new Set(Array.from({ length: 17 }, (_, index) => `Jornada ${index + 1}`));
 const PHASE_TABS = [
   { id: "groups", label: "Fase de grupos" },
@@ -232,6 +234,18 @@ function canUsePenalties(match: Match) {
   return !match.group_name;
 }
 
+function hasResolvedPenaltyWinner(match: Match) {
+  return hasCompletePenaltyScore(match) && match.home_penalty_score !== match.away_penalty_score;
+}
+
+function needsPenaltyWinner(match: Match, homeScore: number, awayScore: number) {
+  return canUsePenalties(match) && homeScore === awayScore;
+}
+
+function isPenaltySchemaError(message: string) {
+  return message.includes("home_penalty_score") || message.includes("away_penalty_score");
+}
+
 function formatMatchScore(match: Match) {
   if (!hasCompleteScore(match)) return "";
 
@@ -304,12 +318,21 @@ export function App() {
     setLoading(true);
     const [participantsResult, matchesResult, predictionsResult] = await Promise.all([
       supabase.from("participants").select("*").order("created_at"),
-      supabase.from("matches").select("*").order("starts_at"),
+      supabase.from("matches").select(MATCH_SELECT).order("starts_at"),
       supabase.from("predictions").select("*"),
     ]);
 
     if (participantsResult.error || matchesResult.error || predictionsResult.error) {
-      setMessage("No se pudieron cargar los datos de la quiniela.");
+      const errorMessage =
+        participantsResult.error?.message ||
+        matchesResult.error?.message ||
+        predictionsResult.error?.message ||
+        "";
+      setMessage(
+        isPenaltySchemaError(errorMessage)
+          ? "Falta aplicar la migración de penales en Supabase."
+          : "No se pudieron cargar los datos de la quiniela.",
+      );
     } else {
       setParticipants(participantsResult.data ?? []);
       setMatches(matchesResult.data ?? []);
@@ -411,6 +434,18 @@ export function App() {
       match && canUsePenalties(match) && nextHomeScore === nextAwayScore && awayPenaltyScore !== null
         ? clampScore(awayPenaltyScore)
         : null;
+
+    if (
+      match &&
+      needsPenaltyWinner(match, nextHomeScore, nextAwayScore) &&
+      (nextHomePenaltyScore === null ||
+        nextAwayPenaltyScore === null ||
+        nextHomePenaltyScore === nextAwayPenaltyScore)
+    ) {
+      setMessage("Ingresa un ganador por penales para cerrar un empate eliminatorio.");
+      return;
+    }
+
     const { error } = await supabase
       .from("matches")
       .update({
@@ -421,7 +456,13 @@ export function App() {
       })
       .eq("id", matchId);
 
-    setMessage(error ? "No se pudo guardar el marcador." : "Marcador actualizado.");
+    setMessage(
+      error
+        ? isPenaltySchemaError(error.message)
+          ? "Falta aplicar la migración de penales en Supabase."
+          : "No se pudo guardar el marcador."
+        : "Marcador actualizado.",
+    );
     await loadData();
   }
 
@@ -443,6 +484,17 @@ export function App() {
   }
 
   async function finishMatch(matchId: string) {
+    const match = matches.find((item) => item.id === matchId);
+    if (
+      match &&
+      hasCompleteScore(match) &&
+      needsPenaltyWinner(match, match.home_score, match.away_score) &&
+      !hasResolvedPenaltyWinner(match)
+    ) {
+      setMessage("Ingresa un ganador por penales antes de finalizar este partido.");
+      return;
+    }
+
     const { error } = await supabase.from("matches").update({ status: "finished" }).eq("id", matchId);
 
     setMessage(error ? "No se pudo cerrar el partido." : "Partido marcado como finalizado.");
@@ -1509,6 +1561,12 @@ function ResultRow({
   const canEnterPenalties = canUsePenalties(match) && canSave && homeScore === awayScore;
   const nextHomePenaltyScore = canEnterPenalties && homePenaltyScore !== "" ? homePenaltyScore : null;
   const nextAwayPenaltyScore = canEnterPenalties && awayPenaltyScore !== "" ? awayPenaltyScore : null;
+  const hasPenaltyWinner =
+    !canEnterPenalties ||
+    (nextHomePenaltyScore !== null &&
+      nextAwayPenaltyScore !== null &&
+      nextHomePenaltyScore !== nextAwayPenaltyScore);
+  const canSaveResult = canSave && hasPenaltyWinner;
 
   useEffect(() => {
     setHomeTeam(match.home_team);
@@ -1612,9 +1670,9 @@ function ResultRow({
           )}
           <button
             className="icon-button"
-            disabled={!canSave}
+            disabled={!canSaveResult}
             onClick={() => {
-              if (homeScore !== "" && awayScore !== "") {
+              if (homeScore !== "" && awayScore !== "" && canSaveResult) {
                 onSave(match.id, homeScore, awayScore, nextHomePenaltyScore, nextAwayPenaltyScore);
               }
             }}
@@ -1626,15 +1684,18 @@ function ResultRow({
           {!isFinished && (
             <button
               className="icon-button finish"
-              disabled={!canSave}
+              disabled={!canSaveResult}
               onClick={() => {
-                if (homeScore !== "" && awayScore !== "") onFinish(match.id);
+                if (homeScore !== "" && awayScore !== "" && canSaveResult) onFinish(match.id);
               }}
               aria-label="Marcar partido como finalizado"
               title="Marcar partido como finalizado"
             >
               <CheckCircle2 size={18} />
             </button>
+          )}
+          {!hasPenaltyWinner && (
+            <small className="result-warning">Ingresa penales con un ganador.</small>
           )}
           {(isFinished ||
             match.home_score !== null ||
