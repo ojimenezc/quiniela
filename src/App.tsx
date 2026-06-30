@@ -466,23 +466,6 @@ export function App() {
     await loadData();
   }
 
-  async function saveTeams(matchId: string, homeTeam: string, awayTeam: string) {
-    const cleanHomeTeam = homeTeam.trim();
-    const cleanAwayTeam = awayTeam.trim();
-    if (!cleanHomeTeam || !cleanAwayTeam) {
-      setMessage("Debes ingresar ambos equipos.");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("matches")
-      .update({ home_team: cleanHomeTeam, away_team: cleanAwayTeam })
-      .eq("id", matchId);
-
-    setMessage(error ? "No se pudieron guardar los equipos." : "Equipos actualizados.");
-    await loadData();
-  }
-
   async function finishMatch(matchId: string) {
     const match = matches.find((item) => item.id === matchId);
     if (
@@ -828,7 +811,6 @@ export function App() {
                     <ResultRow
                       key={match.id}
                       match={match}
-                      onSaveTeams={saveTeams}
                       onSave={saveResult}
                       onFinish={finishMatch}
                       onClear={clearResult}
@@ -1531,13 +1513,11 @@ function PredictionRow({
 
 function ResultRow({
   match,
-  onSaveTeams,
   onSave,
   onFinish,
   onClear,
 }: {
   match: Match;
-  onSaveTeams: (matchId: string, homeTeam: string, awayTeam: string) => void;
   onSave: (
     matchId: string,
     homeScore: number,
@@ -1548,16 +1528,12 @@ function ResultRow({
   onFinish: (matchId: string) => void;
   onClear: (matchId: string) => void;
 }) {
-  const [homeTeam, setHomeTeam] = useState(match.home_team);
-  const [awayTeam, setAwayTeam] = useState(match.away_team);
   const [homeScore, setHomeScore] = useState<ScoreInput>(match.home_score ?? "");
   const [awayScore, setAwayScore] = useState<ScoreInput>(match.away_score ?? "");
   const [homePenaltyScore, setHomePenaltyScore] = useState<ScoreInput>(match.home_penalty_score ?? "");
   const [awayPenaltyScore, setAwayPenaltyScore] = useState<ScoreInput>(match.away_penalty_score ?? "");
   const isFinished = match.status === "finished";
-  const canEditTeams = !GROUP_STAGE_NAMES.has(match.stage);
   const canSave = homeScore !== "" && awayScore !== "";
-  const canSaveTeams = homeTeam.trim() !== "" && awayTeam.trim() !== "";
   const canEnterPenalties = canUsePenalties(match) && canSave && homeScore === awayScore;
   const nextHomePenaltyScore = canEnterPenalties && homePenaltyScore !== "" ? homePenaltyScore : null;
   const nextAwayPenaltyScore = canEnterPenalties && awayPenaltyScore !== "" ? awayPenaltyScore : null;
@@ -1567,11 +1543,6 @@ function ResultRow({
       nextAwayPenaltyScore !== null &&
       nextHomePenaltyScore !== nextAwayPenaltyScore);
   const canSaveResult = canSave && hasPenaltyWinner;
-
-  useEffect(() => {
-    setHomeTeam(match.home_team);
-    setAwayTeam(match.away_team);
-  }, [match.away_team, match.home_team]);
 
   useEffect(() => {
     setHomeScore(match.home_score ?? "");
@@ -1598,30 +1569,6 @@ function ResultRow({
         </small>
       </div>
       <div className="admin-match-controls">
-        {canEditTeams && (
-          <div className="team-editor">
-            <input
-              value={homeTeam}
-              onChange={(event) => setHomeTeam(event.target.value)}
-              aria-label="Equipo local"
-            />
-            <span>vs</span>
-            <input
-              value={awayTeam}
-              onChange={(event) => setAwayTeam(event.target.value)}
-              aria-label="Equipo visitante"
-            />
-            <button
-              className="icon-button"
-              disabled={!canSaveTeams}
-              onClick={() => onSaveTeams(match.id, homeTeam, awayTeam)}
-              aria-label="Guardar equipos"
-              title="Guardar equipos"
-            >
-              <Save size={18} />
-            </button>
-          </div>
-        )}
         <div className="score-editor result-editor">
           <div className="score-editor">
             <input
